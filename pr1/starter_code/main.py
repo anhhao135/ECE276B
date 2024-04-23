@@ -1,4 +1,8 @@
 from utils import *
+from example import example_use_of_gym_env
+from dp_utils import *
+from minigrid.core.world_object import Goal, Key, Door, Wall
+
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -9,83 +13,16 @@ PK = 3  # Pickup Key
 UD = 4  # Unlock Door
 
 
-
-"""
-The Coordinate System:
-    (0,0): Top Left Corner
-    (x,y): x-th column and y-th row
-"""
-
-print("<========== Example Usages ===========> ")
-env_path = "envs/example-8x8.env"
-# env, info = load_env(env_path) # load an environment
-
-env, info = load_env(env_path)
-print("<Environment Info>\n")
-print(info)  # Map size
-# agent initial position & direction,
-# key position, door position, goal position
-print("<================>\n")
-
-# Visualize the environment
-
-agent_pos = env.agent_pos
-print(agent_pos)
-agent_dir = env.dir_vec
-print(agent_dir)
-front_cell = env.front_pos
-print(front_cell)
-cell = env.grid.get(2, 5)
-print(cell)
-
-is_carrying = env.carrying is not None
-print(is_carrying)
-
-cost, done = step(env, MF)  # MF=0, TL=1, TR=2, PK=3, UD=4
-print("Moving Forward Costs: {}".format(cost))
+env_path = "./envs/known_envs/doorkey-5x5-normal.env"
+env, info = load_env(env_path)  # load an environment
 
 
-plot_env(env)
+cost, done = step(env, TL)
+cost, done = step(env, TL)
+cost, done = step(env, PK)
 
-while False:
-
-    # Get the agent position
-    agent_pos = env.agent_pos
-
-    # Get the agent direction
-    agent_dir = env.dir_vec  # or env.agent_dir
-
-    # Get the cell in front of the agent
-    front_cell = env.front_pos  # == agent_pos + agent_dir
-
-    # Access the cell at coord: (2,3)
-    cell = env.grid.get(2, 3)  # NoneType, Wall, Key, Goal
-
-    # Get the door status
-    door = env.grid.get(info["door_pos"][0], info["door_pos"][1])
-    is_open = door.is_open
-    is_locked = door.is_locked
-
-    # Determine whether agent is carrying a key
-    is_carrying = env.carrying is not None
-
-    # Take actions
-    cost, done = step(env, MF)  # MF=0, TL=1, TR=2, PK=3, UD=4
-    print("Moving Forward Costs: {}".format(cost))
-    cost, done = step(env, TL)  # MF=0, TL=1, TR=2, PK=3, UD=4
-    print("Turning Left Costs: {}".format(cost))
-    cost, done = step(env, TR)  # MF=0, TL=1, TR=2, PK=3, UD=4
-    print("Turning Right Costs: {}".format(cost))
-    cost, done = step(env, PK)  # MF=0, TL=1, TR=2, PK=3, UD=4
-    print("Picking Up Key Costs: {}".format(cost))
-    cost, done = step(env, UD)  # MF=0, TL=1, TR=2, PK=3, UD=4
-    print("Unlocking Door Costs: {}".format(cost))
-
-    # Determine whether we stepped into the goal
-    if done:
-        print("Reached Goal")
-
-    # The number of steps so far
-    print("Step Count: {}".format(env.step_count))
-
-
+print(getTypeInFront(env))
+print(getTypeLeft(env))
+print(getTypeRight(env))
+print(checkIfDeadEnd(env))
+print(getCurrentState(env, info))

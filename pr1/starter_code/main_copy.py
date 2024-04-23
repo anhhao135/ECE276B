@@ -30,6 +30,8 @@ def doorkey_problem(env):
 def partA():
     env_path = "./envs/known_envs/example-8x8.env"
     env, info = load_env(env_path)  # load an environment
+
+
     seq = doorkey_problem(env)  # find the optimal action sequence
     draw_gif_from_seq(seq, load_env(env_path)[0])  # draw a GIF & save
 
@@ -41,6 +43,6 @@ def partB():
 
 if __name__ == "__main__":
     # example_use_of_gym_env()
-    partA()
+    #partA()
     # partB()
 

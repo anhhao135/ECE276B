@@ -159,8 +159,8 @@ def draw_gif_from_seq(seq, env, path="./gif/doorkey.gif"):
         img = env.render()
         writer.append_data(img)
         for act in seq:
-            img = env.render()
             step(env, act)
+            img = env.render()
             writer.append_data(img)
     print(f"GIF is written to {path}")
     return
