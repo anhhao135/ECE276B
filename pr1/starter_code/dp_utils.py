@@ -76,7 +76,7 @@ def getNextPossibleStates(currentState, env):
     else:
         if (forwardObject == "goal"):
             print("GOAL FOUND")
-            return None
+            return "GOAL FOUND"
         if (forwardObject == "none"):
             nextPos = pos + frontDirection
             possibleState = np.concatenate((nextPos, currentState[2:]), axis=None)
@@ -132,3 +132,13 @@ def checkIfStateBeenVisited(state, statesVisitedList):
     diff = np.abs(statesVisitedList - state)
     sum = np.sum(diff, axis = 1)
     return not np.all(sum)
+
+def traceBackPolicy(controlInputs):
+    policySequence = []
+    timeSteps = len(controlInputs)
+    previousControlIndex = 0
+    for i in range(timeSteps-1, -1, -1):
+        step = controlInputs[i][previousControlIndex]
+        previousControlIndex = step[0]
+        policySequence.insert(0, step[1])
+    return policySequence

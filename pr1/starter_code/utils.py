@@ -91,6 +91,32 @@ def load_env(path):
 
     return env, info
 
+def load_env_generated(env):
+    """
+    Load Environments
+    ---------------------------------------------
+    Returns:
+        gym-environment, info
+    """
+
+    info = {
+        "height": env.unwrapped.height, 
+        "width": env.unwrapped.width, 
+        "init_agent_pos": env.unwrapped.agent_pos, 
+        "init_agent_dir": env.unwrapped.dir_vec,
+    }
+
+    for i in range(env.unwrapped.height):
+        for j in range(env.unwrapped.width):
+            if isinstance(env.unwrapped.grid.get(j, i), Key):
+                info["key_pos"] = np.array([j, i])
+            elif isinstance(env.unwrapped.grid.get(j, i), Door):
+                info["door_pos"] = np.array([j, i])
+            elif isinstance(env.unwrapped.grid.get(j, i), Goal):
+                info["goal_pos"] = np.array([j, i])
+
+    return env, info
+
 
 def load_random_env(env_folder):
     """
@@ -155,7 +181,7 @@ def draw_gif_from_seq(seq, env, path="./gif/doorkey.gif"):
     env:
         The doorkey environment
     """
-    with imageio.get_writer(path, mode="I", duration=0.8) as writer:
+    with imageio.get_writer(path, mode="I", duration=0.8, fps=2) as writer:
         img = env.render()
         writer.append_data(img)
         for act in seq:
