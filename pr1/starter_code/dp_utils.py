@@ -54,8 +54,8 @@ def getCurrentState(env, envInfo):
 
 def getNextPossibleStates(currentState, env):
 
-    print("current state is:")
-    print(currentState)
+    #print("current state is:")
+    #print(currentState)
 
     possibleStates = np.zeros((5,6), dtype=np.int16)
 
@@ -74,24 +74,37 @@ def getNextPossibleStates(currentState, env):
         print("dead end")
         return possibleStates
     else:
+        if (forwardObject == "goal"):
+            print("GOAL FOUND")
+            return None
         if (forwardObject == "none"):
             nextPos = pos + frontDirection
             possibleState = np.concatenate((nextPos, currentState[2:]), axis=None)
             possibleStates[0,:] = possibleState
         elif (forwardObject == "key"):
-            possibleState = currentState
-            possibleState[5] = 1
-            possibleStates[3,:] = possibleState
+            if (pickedUpKey): #move forward
+                possibleState = currentState.copy()
+                possibleState[0:2] = possibleState[0:2] + frontDirection
+                possibleStates[0,:] = possibleState
+            else:
+                possibleState = currentState.copy() #pickup key
+                possibleState[5] = 1
+                possibleStates[3,:] = possibleState
         elif (forwardObject == "door" and pickedUpKey):
-            possibleState = currentState
-            possibleState[4] = 1
-            possibleStates[4,:] = possibleState
+            if (doorOpen): #move forward
+                possibleState = currentState.copy()
+                possibleState[0:2] = possibleState[0:2] + frontDirection
+                possibleStates[0,:] = possibleState
+            else: #unlock door
+                possibleState = currentState.copy()
+                possibleState[4] = 1
+                possibleStates[4,:] = possibleState
 
-        turnRightState = currentState
+        turnRightState = currentState.copy()
         turnRightState[2:4] = rightDirection
         possibleStates[2,:] = turnRightState
 
-        turnLeftState = currentState
+        turnLeftState = currentState.copy()
         turnLeftState[2:4] = leftDirection
         possibleStates[1,:] = turnLeftState
 
@@ -114,3 +127,8 @@ def checkIfNextStateIsPromising(nextState, globalStatesVisitedList, env):
     leftDirection = np.array([frontDirection[1],-frontDirection[0]])
     doorOpen = nextState[4]
     pickedUpKey = nextState[5]
+
+def checkIfStateBeenVisited(state, statesVisitedList):
+    diff = np.abs(statesVisitedList - state)
+    sum = np.sum(diff, axis = 1)
+    return not np.all(sum)
