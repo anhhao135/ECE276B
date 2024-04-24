@@ -10,13 +10,18 @@ def getObjectType(object):
     elif isinstance(object, Key):
         return "key"
     elif isinstance(object, Door):
-        return "door"
+        return "door" 
     elif isinstance(object, Wall):
         return "wall"
+
+def getTypeAtCell(env, pos):
+    gotObject = env.grid.get(pos[0],pos[1])
+    return getObjectType(gotObject)
 
 def getTypeInFront(env):
     frontObject = env.grid.get(env.front_pos[0],env.front_pos[1])
     return getObjectType(frontObject)
+
 
 def getTypeLeft(env):
     forwardDirectionVector = env.dir_vec
@@ -47,7 +52,65 @@ def getCurrentState(env, envInfo):
     stateVector = np.array([agentPosition[0],agentPosition[1],agentDirection[0],agentDirection[1],int(doorIsOpenStatus),int(keyPickedUpStatus)])
     return stateVector
 
+def getNextPossibleStates(currentState, env):
 
-def returnPossibleNextStates(env):
-    print(env.front_pos)
-    print(env.grid.get(env.front_pos[0]))
+    print("current state is:")
+    print(currentState)
+
+    possibleStates = np.zeros((5,6), dtype=np.int16)
+
+    pos = currentState[0:2]
+    frontDirection = currentState[2:4]
+    rightDirection = np.array([-frontDirection[1],frontDirection[0]])
+    leftDirection = np.array([frontDirection[1],-frontDirection[0]])
+    doorOpen = currentState[4]
+    pickedUpKey = currentState[5]
+    
+    forwardObject = getTypeAtCell(env, pos + frontDirection)
+    rightObject = getTypeAtCell(env, pos + rightDirection)
+    leftObject = getTypeAtCell(env, pos + leftDirection)
+
+    if (forwardObject == "wall" and rightObject == "wall" and leftObject == "wall"):
+        print("dead end")
+        return possibleStates
+    else:
+        if (forwardObject == "none"):
+            nextPos = pos + frontDirection
+            possibleState = np.concatenate((nextPos, currentState[2:]), axis=None)
+            possibleStates[0,:] = possibleState
+        elif (forwardObject == "key"):
+            possibleState = currentState
+            possibleState[5] = 1
+            possibleStates[3,:] = possibleState
+        elif (forwardObject == "door" and pickedUpKey):
+            possibleState = currentState
+            possibleState[4] = 1
+            possibleStates[4,:] = possibleState
+
+        turnRightState = currentState
+        turnRightState[2:4] = rightDirection
+        possibleStates[2,:] = turnRightState
+
+        turnLeftState = currentState
+        turnLeftState[2:4] = leftDirection
+        possibleStates[1,:] = turnLeftState
+
+
+        return possibleStates
+    
+
+def filterOutUnpromisingNextPossibleStates(nextPossibleStates, globalStatesVisitedList, env):
+    for i in range(5):
+        if not np.array_equal(nextPossibleStates[i,:], np.zeros(6)):
+            print(i)
+            nextNextPossibleStates = getNextPossibleStates(nextPossibleStates[i,:], env)
+            print(nextNextPossibleStates)
+
+
+def checkIfNextStateIsPromising(nextState, globalStatesVisitedList, env):
+    pos = nextState[0:2]
+    frontDirection = nextState[2:4]
+    rightDirection = np.array([-frontDirection[1],frontDirection[0]])
+    leftDirection = np.array([frontDirection[1],-frontDirection[0]])
+    doorOpen = nextState[4]
+    pickedUpKey = nextState[5]

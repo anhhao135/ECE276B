@@ -16,13 +16,33 @@ UD = 4  # Unlock Door
 env_path = "./envs/known_envs/doorkey-5x5-normal.env"
 env, info = load_env(env_path)  # load an environment
 
+#cost, done = step(env, MF)
+#cost, done = step(env, TL)
+#cost, done = step(env, TL)
+#cost, done = step(env, PK)
+#cost, done = step(env, TR)
 
-cost, done = step(env, TL)
-cost, done = step(env, TL)
-cost, done = step(env, PK)
+globalVisitedStates = np.array([[1,2,0,-1,0,0],[1,2,0,1,0,0], [1,3,0,-1,0,0]])
+state = np.array([1,2,0,-1,0,0])
+sum = globalVisitedStates - state
+print(sum)
+sum = np.sum(sum, axis=1)
+print(sum)
 
-print(getTypeInFront(env))
-print(getTypeLeft(env))
-print(getTypeRight(env))
-print(checkIfDeadEnd(env))
-print(getCurrentState(env, info))
+
+currentState = getCurrentState(env,info)
+
+nextPossibleStates = getNextPossibleStates(currentState,env)
+print(nextPossibleStates)
+filterOutUnpromisingNextPossibleStates(nextPossibleStates,1,env)
+
+
+
+
+
+
+#print(getTypeInFront(env))
+#print(getTypeLeft(env))
+#print(getTypeRight(env))
+#print(checkIfDeadEnd(env))
+#print(getCurrentState(env, info))
