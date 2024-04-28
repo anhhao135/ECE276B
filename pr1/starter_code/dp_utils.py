@@ -129,7 +129,7 @@ def checkIfNextStateIsPromising(nextState, globalStatesVisitedList, env):
     pickedUpKey = nextState[5]
 
 def checkIfStateBeenVisited(state, statesVisitedList):
-    diff = np.abs(statesVisitedList - state)
+    diff = np.abs(np.array(statesVisitedList) - state)
     sum = np.sum(diff, axis = 1)
     return not np.all(sum)
 
