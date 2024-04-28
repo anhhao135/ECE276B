@@ -33,7 +33,7 @@ optimalPolicy = calculateSingleOptimalPolicy(randomMap, initialStates, 20)
 print(len(optimalPolicy))
 
 
-env, info = load_env("./envs/random_envs/doorkey-8x8-30.env")
+env, info = load_env("./envs/random_envs/doorkey-8x8-4.env")
 print(info)
 
 # Visualize the environment
