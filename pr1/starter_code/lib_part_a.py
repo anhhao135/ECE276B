@@ -84,22 +84,23 @@ def getNextPossibleStates(currentState, env): #given a state vector node, what a
             #we only consider a next move if there is a door and we have a key in hand because that could mean two things:
             if (doorOpen): #check if that door has been previously unlocked, if so then this is equivalent to not having anything in front of us so we can move forward
                 possibleState = currentState.copy()
-                possibleState[0:2] = possibleState[0:2] + frontDirection
+                possibleState[0:2] = possibleState[0:2] + frontDirection #move forward motion model
                 possibleStates[0,:] = possibleState
-            else: #unlock door
+            else: #if the door is locked, then we can proceed with unlocking it
                 possibleState = currentState.copy()
-                possibleState[4] = 1
+                possibleState[4] = 1 #motion model for an unlock door move is to change the vector state portion to unlock
                 possibleStates[4,:] = possibleState
 
+        #for any state, it is always valid to turn left or right in place
         turnRightState = currentState.copy()
-        turnRightState[2:4] = rightDirection
+        turnRightState[2:4] = rightDirection #motion model is to modify the agent direction
         possibleStates[2,:] = turnRightState
 
         turnLeftState = currentState.copy()
         turnLeftState[2:4] = leftDirection
         possibleStates[1,:] = turnLeftState
 
-        return possibleStates
+        return possibleStates #once all the control inputs have been gone through, we return the ones that are valid and will incur a stage cost of 1
     
 
 def checkIfStateBeenVisited(state, statesVisitedList):
@@ -111,61 +112,56 @@ def checkIfStateBeenVisited(state, statesVisitedList):
     return not np.all(sum) #check if there is a sum of 0, and if so that means the target state has been visited
 
 def traceBackPolicy(controlInputs):
-    policySequence = []
-    timeSteps = len(controlInputs)
-    previousControlIndex = 0
-    for i in range(timeSteps-1, -1, -1):
-        step = controlInputs[i][previousControlIndex]
-        previousControlIndex = step[0]
-        policySequence.insert(0, step[1])
+    #the transition chain is as follows
+    # t:  ....     N-1                                N
+    # chain:     [[1, TR],[2, PK],....]           [[0, MF]]
+    # each time step is a list of [previousIndex, controlInput] pairs
+    # previousIndex points to the index of the previous pair in the previous time
+
+    policySequence = [] #initiate an empty optimal sequence chain to be later constructed as we traverse the chain
+    timeSteps = len(controlInputs) #this represents the optimal cost-to-go from start to goal node
+    previousControlIndex = 0 #for the goal step, we know the previous pair is in the 0th index
+    for i in range(timeSteps-1, -1, -1): #iterate starting from end time to 0
+        step = controlInputs[i][previousControlIndex] #extract the previous pair
+        previousControlIndex = step[0] #we know the next previous pair index can be taken from the 1st element of the pair
+        policySequence.insert(0, step[1]) #we can add to the front of the optimal sequence the control input, taken from the 2nd element of the pair
     return policySequence
 
 def calculateOptimalSequence(env, info, timeHorizon):
+    print("CALCULATING OPTIMAL SEQUENCE")
+    #core of the forward dynamic programming algorithm
 
-    currentStates = np.atleast_2d(getCurrentState(env,info))
-    visitedStates = currentStates.copy()
-    print("initial visited states")
-    print(visitedStates)
-    timeHorizon = 1000
-    controlInputs = []
-    flagGoalFound = False
+    currentStates = np.atleast_2d(getCurrentState(env,info)) #start by initializing the current state node
+    visitedStates = currentStates.copy() #initialize the visited nodes to only contain the initial node
+    controlInputs = [] #keep track of the control inputs that induces transitions between nodes
+    flagGoalFound = False #keep track of whether the goal has been found; if so, the algorithm can terminate
 
-
-    for t in range(timeHorizon):
-        print("------------------------")
-        print(t)
+    for t in range(timeHorizon): #we will iterate up to a time horizon, and assume that the optimal cost-to-arrive at the current nodes is equal to t
         nextStates = []
         currentControlInputs = []
         goalControlInput = None
-        for currentStateIndex in range(currentStates.shape[0]):
+        for currentStateIndex in range(currentStates.shape[0]): #iterate through all the "surviving" nodes with a cost-to-arrive of t; these still have potential to be part of the shortest path
             currentState = currentStates[currentStateIndex,:]
-            nextPossibleStates = getNextPossibleStates(currentState, env)
-            if nextPossibleStates == "GOAL FOUND":
-                flagGoalFound = True
-                goalControlInput = np.array([currentStateIndex, 0]) #only way is to move forward
+            nextPossibleStates = getNextPossibleStates(currentState, env) #for each surviving node, find all the potential next nodes with corresponding control inputs
+            if nextPossibleStates == "GOAL FOUND": #if a next node is a goal node, then terminate the algorithm, and the cost-to-arrive at the goal is t
+                flagGoalFound = True #set the goal found tracking flag
+                goalControlInput = np.array([currentStateIndex, 0]) #the next optimal control input, if a goal node exists next, is to move forward
                 break
             else:
-                for controlInput in range(5): #the 5 different control inputs
-                    nextPossibleState = nextPossibleStates[controlInput,:]
-                    if not (np.array_equal(nextPossibleState, np.zeros(6, dtype=np.int16))):
-                        if not checkIfStateBeenVisited(nextPossibleState, visitedStates):
-                            print("next possible state")
-                            print(nextPossibleState)
-                            visitedStates = np.vstack((visitedStates, nextPossibleState))
-                            nextStates.append(nextPossibleState)
-                            currentControlInputs.append(np.array([currentStateIndex, controlInput]))
+                for controlInput in range(5): #iterate through the 5 possible control inputs
+                    nextPossibleState = nextPossibleStates[controlInput,:] #get the next node corresponding to that control input
+                    if not (np.array_equal(nextPossibleState, np.zeros(6, dtype=np.int16))): #check if the stage cost for that control input is not infinite
+                        if not checkIfStateBeenVisited(nextPossibleState, visitedStates): #check if the state has been visited because then the cost-to-arrive is not optimal
+                            #at this point, the next node has been checked to satisfy both conditions such that the stage cost is 1, or else it would be infinite and not considered
+                            visitedStates = np.vstack((visitedStates, nextPossibleState)) #add this next node to the visited states
+                            nextStates.append(nextPossibleState) #add this next node to the next states list, which will be the future surviving current states
+                            currentControlInputs.append(np.array([currentStateIndex, controlInput])) #add the optimal control input that is associated with this state
         if flagGoalFound:
-            controlInputs.append([goalControlInput])
+            controlInputs.append([goalControlInput]) #if the goal has been found, there is only one control input associated to transistion to the goal node, the only one surviving
             break
         currentStates = np.array(nextStates)
-        controlInputs.append(currentControlInputs)
-        print("current states")
-        print(currentStates)
-        print("visited states")
-        print(visitedStates)
-        print("------------------------")
+        controlInputs.append(currentControlInputs) #add all the current step's possible transitions, and the associated control inputs, to the node transition chain
         
-
-    print(controlInputs)
-    seq = traceBackPolicy(controlInputs)
+    seq = traceBackPolicy(controlInputs) #trace back the optimal chain starting from the last goal node
+    print("FOUND OPTIMAL SEQUENCE")
     return seq
