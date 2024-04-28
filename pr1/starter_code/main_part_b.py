@@ -1,49 +1,18 @@
 from dp_utils_part_b import *
+from utils import *
+from example import example_use_of_gym_env
+from minigrid.core.world_object import Goal, Key, Door, Wall
+import time
+import random
 
-#goalLocations = [np.array([5,1]), np.array([6,3]), np.array([5,6])]
-#keyLocations = [np.array([1,1]), np.array([2,3]), np.array([1,6])]
-#doorLocations = [np.array([4,2]), np.array([4,5])]
-#dimension = 8
 
-goalLocations = [np.array([2,0]), np.array([2,1])]
-keyLocations = [np.array([0,0]), np.array([0,1])]
-doorLocations = [np.array([1,1]), np.array([1,2])]
-dimension = 3
+goalLocations = [np.array([5,1]), np.array([6,3]), np.array([5,6])]
+keyLocations = [np.array([1,1]), np.array([2,3]), np.array([1,6])]
+doorLocations = [np.array([4,2]), np.array([4,5])]
+dimension = 8
 
-initialPos = np.array([0,2]) + np.array([1,1])
-initialDir = np.array([0,-1])
-initialGoal = np.array([2,0]) + np.array([1,1])
-initialKey = np.array([0,1]) + np.array([1,1])
-initialDoor = np.array([0,0]) #top and bottom one unlocked locked
-initialKeyPickedUp = 0
-
-initialState1 = createStateVector(initialPos, initialDir, initialGoal, initialKey, initialDoor, initialKeyPickedUp)
-
-initialPos = np.array([0,2]) + np.array([1,1])
-initialDir = np.array([0,-1])
-initialGoal = np.array([2,0]) + np.array([1,1])
-initialKey = np.array([0,1]) + np.array([1,1])
-initialDoor = np.array([1,1]) #top one unlocked and bottom one locked
-initialKeyPickedUp = 0
-
-initialState2 = createStateVector(initialPos, initialDir, initialGoal, initialKey, initialDoor, initialKeyPickedUp)
-
-initialPos = np.array([0,2]) + np.array([1,1])
-initialDir = np.array([0,-1])
-initialGoal = np.array([2,0]) + np.array([1,1])
-initialKey = np.array([0,1]) + np.array([1,1])
-initialDoor = np.array([1,0]) #top one unlocked and bottom one locked
-initialKeyPickedUp = 0
-
-initialState3 = createStateVector(initialPos, initialDir, initialGoal, initialKey, initialDoor, initialKeyPickedUp)
-
-initialState = [initialState1, initialState2, initialState3]
-#initialState = [initialState3]
 
 policyDict = {}
-
-
-
 
 
 randomMap = constructRandomMap(goalLocations, keyLocations, doorLocations, dimension)
@@ -143,3 +112,54 @@ for key, value in policyDict.items():
                     value = value_2
                 
 print(optimalPolicy)
+
+
+
+env, info = load_env("./envs/random_envs/doorkey-8x8-1.env")
+
+# Visualize the environment
+plot_env(env)
+
+while False:
+
+    # Get the agent position
+    agent_pos = env.agent_pos
+
+    # Get the agent direction
+    agent_dir = env.dir_vec  # or env.agent_dir
+
+    # Get the cell in front of the agent
+    front_cell = env.front_pos  # == agent_pos + agent_dir
+
+    # Access the cell at coord: (2,3)
+    cell = env.grid.get(2, 3)  # NoneType, Wall, Key, Goal
+
+    # Get the door status
+    door = env.grid.get(info["door_pos"][0], info["door_pos"][1])
+    is_open = door.is_open
+    is_locked = door.is_locked
+
+    # Determine whether agent is carrying a key
+    is_carrying = env.carrying is not None
+
+    # Take actions
+    cost, done = step(env, MF)  # MF=0, TL=1, TR=2, PK=3, UD=4
+    print("Moving Forward Costs: {}".format(cost))
+    cost, done = step(env, TL)  # MF=0, TL=1, TR=2, PK=3, UD=4
+    print("Turning Left Costs: {}".format(cost))
+    cost, done = step(env, TR)  # MF=0, TL=1, TR=2, PK=3, UD=4
+    print("Turning Right Costs: {}".format(cost))
+    cost, done = step(env, PK)  # MF=0, TL=1, TR=2, PK=3, UD=4
+    print("Picking Up Key Costs: {}".format(cost))
+    cost, done = step(env, UD)  # MF=0, TL=1, TR=2, PK=3, UD=4
+    print("Unlocking Door Costs: {}".format(cost))
+
+    # Determine whether we stepped into the goal
+    if done:
+        print("Reached Goal")
+
+    # The number of steps so far
+    print("Step Count: {}".format(env.step_count))
+
+
+
