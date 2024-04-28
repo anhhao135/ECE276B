@@ -177,16 +177,17 @@ def calculateSingleOptimalPolicy(timeHorizon, goalLocations, keyLocations, doorL
                 initialStates.append(initialState)
 
     currentStates = np.atleast_2d(np.array(initialStates))
-    print(currentStates.shape)
     visitedStates = currentStates.copy()
-    print("initial visited states")
-    print(visitedStates)
 
     policyDict = {}
 
     for t in range(timeHorizon):
-        print("------------------------")
-        print(t)
+
+        if len(currentStates) == 0:
+            print("BREAKOUT")
+            print(t)
+            break
+
         nextStates = []
         currentControlInputs = []
         goalControlInput = None
@@ -200,11 +201,8 @@ def calculateSingleOptimalPolicy(timeHorizon, goalLocations, keyLocations, doorL
                 nextPossibleState = nextPossibleStates[controlInput,:]
                 if not (np.array_equal(nextPossibleState, np.zeros(13, dtype=np.int16))):
                     if not checkIfStateBeenVisited(nextPossibleState, visitedStates):
-                        print("next possible state")
-                        print(nextPossibleState)
                         goalReached = np.array_equal(nextPossibleState[0:2], nextPossibleState[4:6])
                         if (goalReached):
-                            print("goal reached")
                             if not checkIfStateBeenVisited(nextPossibleState[4:10], initialStatesWithGoalFound):
                                 initialStatesWithGoalFound.append(nextPossibleState[4:10])
                             endGoalStates = createEndGoalStates(nextPossibleState)
@@ -231,15 +229,6 @@ def calculateSingleOptimalPolicy(timeHorizon, goalLocations, keyLocations, doorL
             currentStates = np.array(currentStates, dtype=np.int16)
         else:
             currentStates = unprunedCurrentStates
-
-
-        print("current states")
-        print(currentStates)
-        print("visited states")
-        print(visitedStates)
-        print("initial states with goal found")
-        print(initialStatesWithGoalFound)
-        print("------------------------")
         
     #print(policyDict)
 
@@ -249,9 +238,7 @@ def calculateSingleOptimalPolicy(timeHorizon, goalLocations, keyLocations, doorL
     for key, value in policyDict.items():
         key = np.fromstring(key, dtype=int, sep=' ')
         if key[1]:
-            print(key[0])
             for time in reversed(range(key[0]+1)):
-                    print("here")
                     currentState = key[15:28]
                     previousState = key[2:15]
                     controlInput = value
@@ -261,11 +248,6 @@ def calculateSingleOptimalPolicy(timeHorizon, goalLocations, keyLocations, doorL
                         key_2 = np.fromstring(key_2, dtype=int, sep=' ')
                 
                         if key_2[0] == time - 1 and np.array_equal(key_2[15:28], previousState):
-                            print("000000000000000000")
-                            print(key_2[15:28])
-                            print(value_2)
-                            print(previousState)
-                            print("000000000000000000")
                             key = key_2
                             value = value_2
                         
