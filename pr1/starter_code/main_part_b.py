@@ -1,165 +1,73 @@
-from dp_utils_part_b import *
+from lib_part_b import *
 from utils import *
-from example import example_use_of_gym_env
-from minigrid.core.world_object import Goal, Key, Door, Wall
-import time
-import random
+import warnings
+warnings.filterwarnings('ignore')
+import os
+from csv import writer
 
+env_dir = "envs/random_envs"
+#this is to run the calculation for part B on all random environments
 
 goalLocations = [np.array([5,1]), np.array([6,3]), np.array([5,6])]
 keyLocations = [np.array([1,1]), np.array([2,3]), np.array([1,6])]
 doorLocations = [np.array([4,2]), np.array([4,5])]
+initialPos = np.array([3,5], dtype=np.int16)
+initialDir = np.array([0,-1], dtype=np.int16)
+timeHorizon = 30
 dimension = 8
 
+#calculate the optimal policy once based on the random map generation parameters
+optimalPolicy = calculateSingleOptimalPolicy(timeHorizon, goalLocations, keyLocations, doorLocations, dimension, initialPos, initialDir)
 
-policyDict = {}
+with open('random_envs_sequences.csv', 'a') as f_object: #save all optimal sequences in csv file
+    writer_object = writer(f_object)
+    for env_file in os.listdir(env_dir):
+        env_path = os.path.join(env_dir,env_file)
+        env, info = load_env(env_path)
+        door1 = env.grid.get(4,2)
+        door2 = env.grid.get(4,5)
+        doorState = np.array([door1.is_open, door2.is_open], dtype=np.int16)
+        keyPos = info['key_pos'] + np.array([1,1])
+        goalPos = info['goal_pos'] + np.array([1,1])
+        timeHorizon = 20
+        door1StateAfter = door1.is_open
+        door2StateAfter = door2.is_open
+        door1UnlockAttempted = 0
+        door2UnlockAttempted = 0
 
+        seq = []
 
-randomMap = constructRandomMap(goalLocations, keyLocations, doorLocations, dimension)
-print(randomMap.T)
+        for t in range(timeHorizon):
 
-currentStates = np.atleast_2d(np.array(initialState))
-print(currentStates.shape)
-visitedStates = currentStates.copy()
-print("initial visited states")
-print(visitedStates)
-timeHorizon = 15
-controlInputs = []
-flagGoalFound = False
+            door1UnlockAttemptedRisingEdge = door1.is_open != door1StateAfter
+            door2UnlockAttemptedRisingEdge = door2.is_open != door2StateAfter
 
-for t in range(timeHorizon):
-    print("------------------------")
-    print(t)
-    nextStates = []
-    currentControlInputs = []
-    goalControlInput = None
+            if (door1UnlockAttemptedRisingEdge or door2UnlockAttemptedRisingEdge):
+                door1UnlockAttempted = door1.is_open != door1StateAfter
+                door2UnlockAttempted = door2.is_open != door2StateAfter
 
-    initialStatesWithGoalFound = [np.array([-1,-1,-1,-1,-1,-1])]
+            door1StateAfter = door1.is_open
+            door2StateAfter = door2.is_open
+            currentPos = env.agent_pos + np.array([1,1])
+            currentDir = env.dir_vec
+            currentKeyPickedUp = env.carrying is not None
+            currentState = createCurrentStateVector(currentPos, currentDir, goalPos, keyPos, doorState, currentKeyPickedUp, door1UnlockAttempted, door2UnlockAttempted)
+            lookupState = np.concatenate((np.array([t],dtype=np.int16), currentState))
+            lookupState = np.array2string(lookupState)[1:-1]
+            optimalControl = optimalPolicy[lookupState]
+            seq.append(optimalControl)
+            cost, done = step(env, optimalControl)  # MF=0, TL=1, TR=2, PK=3, UD=4
+            if np.array_equal(info['goal_pos'], env.agent_pos):
+                print("GOAL REACHED")
+                break
 
-    for currentStateIndex in range(currentStates.shape[0]):
-        currentState = currentStates[currentStateIndex,:]
-        nextPossibleStates = getNextPossibleStates(currentState, randomMap)
-        for controlInput in range(6): #the 6 different control inputs
-            nextPossibleState = nextPossibleStates[controlInput,:]
-            if not (np.array_equal(nextPossibleState, np.zeros(13, dtype=np.int16))):
-                if not checkIfStateBeenVisited(nextPossibleState, visitedStates):
-                    print("next possible state")
-                    print(nextPossibleState)
-                    goalReached = np.array_equal(nextPossibleState[0:2], nextPossibleState[4:6])
-                    if (goalReached):
-                        print("goal reached")
-                        if not checkIfStateBeenVisited(nextPossibleState[4:10], initialStatesWithGoalFound):
-                            initialStatesWithGoalFound.append(nextPossibleState[4:10])
-                        endGoalStates = createEndGoalStates(nextPossibleState)
-                        visitedStates = np.vstack((visitedStates, endGoalStates))
-
-                    else:
-                        visitedStates = np.vstack((visitedStates, nextPossibleState))
-                        nextStates.append(nextPossibleState)
-                    dictKey = np.zeros(28, dtype=np.int16)
-                    dictKey[0] = t
-                    dictKey[1] = goalReached
-                    dictKey[2:15] = currentState
-                    dictKey[15:28] = nextPossibleState
-                    policyDict[np.array2string(dictKey)[1:-1]] = controlInput
-    
-    unprunedCurrentStates = np.array(nextStates)
-    currentStates = []
-    #controlInputs.append(currentControlInputs)
-
-    if len(initialStatesWithGoalFound) > 1:
-        for unprunedCurrentState in unprunedCurrentStates:
-            if not checkIfStateBeenVisited(unprunedCurrentState[4:10], initialStatesWithGoalFound):
-                currentStates.append(unprunedCurrentState)
-        currentStates = np.array(currentStates, dtype=np.int16)
-    else:
-        currentStates = unprunedCurrentStates
+        print(seq)
+        env, info = load_env(env_path)
+        draw_gif_from_seq(seq, env, path = "gif_random/" + str(env_file) + ".gif")  # draw a GIF & save 
+        writer_object.writerow([env_file, seq])
+    f_object.close()
 
 
-    print("current states")
-    print(currentStates)
-    print("visited states")
-    print(visitedStates)
-    print("initial states with goal found")
-    print(initialStatesWithGoalFound)
-    print("------------------------")
-    
-#print(policyDict)
-
-optimalPolicy = {}
-
-
-for key, value in policyDict.items():
-   key = np.fromstring(key, dtype=int, sep=' ')
-   if key[1]:
-       print(key[0])
-       for time in reversed(range(key[0]+1)):
-            print("here")
-            currentState = key[15:28]
-            previousState = key[2:15]
-            controlInput = value
-            optimalPolicy[np.array2string(np.concatenate((np.array([time], dtype=np.int16),previousState)))[1:-1]] = controlInput
-            for key_2, value_2 in policyDict.items():
-                key_2 = np.fromstring(key_2, dtype=int, sep=' ')
-        
-                if key_2[0] == time - 1 and np.array_equal(key_2[15:28], previousState):
-                    print("000000000000000000")
-                    print(key_2[15:28])
-                    print(value_2)
-                    print(previousState)
-                    print("000000000000000000")
-                    key = key_2
-                    value = value_2
-                
-print(optimalPolicy)
-
-
-
-env, info = load_env("./envs/random_envs/doorkey-8x8-1.env")
-
-# Visualize the environment
-plot_env(env)
-
-while False:
-
-    # Get the agent position
-    agent_pos = env.agent_pos
-
-    # Get the agent direction
-    agent_dir = env.dir_vec  # or env.agent_dir
-
-    # Get the cell in front of the agent
-    front_cell = env.front_pos  # == agent_pos + agent_dir
-
-    # Access the cell at coord: (2,3)
-    cell = env.grid.get(2, 3)  # NoneType, Wall, Key, Goal
-
-    # Get the door status
-    door = env.grid.get(info["door_pos"][0], info["door_pos"][1])
-    is_open = door.is_open
-    is_locked = door.is_locked
-
-    # Determine whether agent is carrying a key
-    is_carrying = env.carrying is not None
-
-    # Take actions
-    cost, done = step(env, MF)  # MF=0, TL=1, TR=2, PK=3, UD=4
-    print("Moving Forward Costs: {}".format(cost))
-    cost, done = step(env, TL)  # MF=0, TL=1, TR=2, PK=3, UD=4
-    print("Turning Left Costs: {}".format(cost))
-    cost, done = step(env, TR)  # MF=0, TL=1, TR=2, PK=3, UD=4
-    print("Turning Right Costs: {}".format(cost))
-    cost, done = step(env, PK)  # MF=0, TL=1, TR=2, PK=3, UD=4
-    print("Picking Up Key Costs: {}".format(cost))
-    cost, done = step(env, UD)  # MF=0, TL=1, TR=2, PK=3, UD=4
-    print("Unlocking Door Costs: {}".format(cost))
-
-    # Determine whether we stepped into the goal
-    if done:
-        print("Reached Goal")
-
-    # The number of steps so far
-    print("Step Count: {}".format(env.step_count))
 
 
 
