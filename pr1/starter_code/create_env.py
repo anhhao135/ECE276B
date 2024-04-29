@@ -198,7 +198,7 @@ def create_performance_envs(map_name, agent_pos, agent_dir):
 
 
 
-def create_random_envs():
+def create_random_envs(agent_pos, agent_dir):
     size = 8
     key_locations = [(1, 1), (2, 3), (1, 6)]
     goal_locations = [(5, 1), (6, 3), (5, 6)]
@@ -221,11 +221,11 @@ def create_random_envs():
                     env.grid.set(4, 5, door2)
                     env.grid.set(key_jj, key_ii, Key(color="yellow"))
                     env.grid.set(goal_jj, goal_ii, Goal())
-                    env.agent_pos = (3, 5)
+                    env.agent_pos = agent_pos
                     env.agent_dir = UP
                     env.gen_obs()
                     image = env.render()
-                    plt.imsave(f"envs/random_envs/DoorKey-8x8-{cnt}.png", image)
+                    #plt.imsave(f"envs/random_envs/DoorKey-8x8-{cnt}.png", image)
                     with open(f"envs/random_envs/DoorKey-8x8-{cnt}.env", "wb") as f:
                         pickle.dump(env_wrapper, f)
 

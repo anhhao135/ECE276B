@@ -184,7 +184,7 @@ def calculateSingleOptimalPolicy(timeHorizon, goalLocations, keyLocations, doorL
     initialDirs = [np.array([0,1]), np.array([0,-1]), np.array([1,0]), np.array([-1,0])]
     initialDoorStates = [np.array([0,0]), np.array([0,1]), np.array([1,0]), np.array([1,1])]
     #initialDoorUnlockAttemptedStates = [np.array([0,0]), np.array([0,1]), np.array([1,0]), np.array([1,1])]
-    initialDoorUnlockAttemptedStates = [np.array([0,0])]
+    initialDoorUnlockAttemptedStates = [np.array([0,0]), np.array([0,1]), np.array([1,0])]
     initialKeyPickedUpStates = np.array([0,1])
 
     initialStates = []
@@ -208,7 +208,7 @@ def calculateSingleOptimalPolicy(timeHorizon, goalLocations, keyLocations, doorL
     DOOR_1_POS = doorLocations[0] + np.array([1,1])
     #DOOR_2_POS = doorLocations[1] + np.array([1,1])
 
-    for t in tqdm (range (timeHorizon), desc="time step"): #we will iterate up to a time horizon, and assume that the optimal cost-to-arrive at the current nodes is equal to t
+    for t in tqdm (range (timeHorizon), desc="time horizon step"): #we will iterate up to a time horizon, and assume that the optimal cost-to-arrive at the current nodes is equal to t
         print("------------------------------------------")
         print("time: " + str(t))
         print("current state count: " + str(currentStates.shape[0]))
@@ -228,19 +228,6 @@ def calculateSingleOptimalPolicy(timeHorizon, goalLocations, keyLocations, doorL
                         policyDict[np.array2string(offsetNextPossibleState)[1:-1]] = controlInput
 
         currentStates = np.array(nextStates)
-        print("-----------------")
-        print("current states")
-        print(currentStates)
-        print("-----------------")
-        print("-----------------")
-        print("visited states")
-        print(visitedStates)
-        print("-----------------")
-        print("-----------------")
-        print("policy dict")
-        print(policyDict)
-        print("-----------------")
-        print("------------------------------------------")
         if (len(nextStates) == 0):
             break
     return policyDict
