@@ -141,7 +141,6 @@ def calculateOptimalPolicy(env, info, timeHorizon):
 
     currentStates = np.atleast_2d(initialStates)
     visitedStates = currentStates.copy() #initialize the visited nodes to only contain the initial node
-    controlInputs = [] #keep track of the control inputs that induces transitions between nodes
     policyDict = {}
 
     for t in range(timeHorizon): #we will iterate up to a time horizon, and assume that the optimal cost-to-arrive at the current nodes is equal to t
@@ -149,7 +148,6 @@ def calculateOptimalPolicy(env, info, timeHorizon):
         print("time: " + str(t))
         
         nextStates = []
-        currentControlInputs = []
         for currentStateIndex in range(currentStates.shape[0]): #iterate through all the "surviving" nodes with a cost-to-arrive of t; these still have potential to be part of the shortest path
             currentState = currentStates[currentStateIndex,:]
             nextPossibleStates = getNextPossibleStates(currentState, env) #for each surviving node, find all the potential next nodes with corresponding control inputs
@@ -160,7 +158,6 @@ def calculateOptimalPolicy(env, info, timeHorizon):
                         #at this point, the next node has been checked to satisfy both conditions such that the stage cost is 1, or else it would be infinite and not considered
                         visitedStates = np.vstack((visitedStates, nextPossibleState)) #add this next node to the visited states
                         nextStates.append(nextPossibleState) #add this next node to the next states list, which will be the future surviving current states
-                        currentControlInputs.append(np.array([currentStateIndex, controlInput])) #add the optimal control input that is associated with this state
                         policyDict[np.array2string(nextPossibleState)[1:-1]] = controlInput
 
         currentStates = np.array(nextStates)
@@ -176,7 +173,6 @@ def calculateOptimalPolicy(env, info, timeHorizon):
         print("policy dict")
         print(policyDict)
         print("-----------------")
-        controlInputs.append(currentControlInputs) #add all the current step's possible transitions, and the associated control inputs, to the node transition chain
         print("------------------------------------------")
         if (len(nextStates) == 0):
             break
