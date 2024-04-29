@@ -61,8 +61,6 @@ def getNextPossibleStates(currentState, env):
     #add the direction vectors to the current position to get the cell coordinate one step in that direction
     rearObject = getTypeAtCell(env, pos + -frontDirection)
     forwardObject = getTypeAtCell(env, pos + frontDirection)
-
-    print(rearObject)
     
     if (rearObject == "none"): #if there is nothing in the front, then a valid action would be to move forward
         possibleState = currentState.copy()
@@ -144,8 +142,6 @@ def calculateOptimalPolicy(env, info, timeHorizon):
     policyDict = {}
 
     for t in range(timeHorizon): #we will iterate up to a time horizon, and assume that the optimal cost-to-arrive at the current nodes is equal to t
-        print("------------------------------------------")
-        print("time: " + str(t))
         
         nextStates = []
         for currentStateIndex in range(currentStates.shape[0]): #iterate through all the "surviving" nodes with a cost-to-arrive of t; these still have potential to be part of the shortest path
@@ -161,19 +157,7 @@ def calculateOptimalPolicy(env, info, timeHorizon):
                         policyDict[np.array2string(nextPossibleState)[1:-1]] = controlInput
 
         currentStates = np.array(nextStates)
-        print("-----------------")
-        print("current states")
-        print(currentStates)
-        print("-----------------")
-        print("-----------------")
-        print("visited states")
-        print(visitedStates)
-        print("-----------------")
-        print("-----------------")
-        print("policy dict")
-        print(policyDict)
-        print("-----------------")
-        print("------------------------------------------")
+
         if (len(nextStates) == 0):
             break
 

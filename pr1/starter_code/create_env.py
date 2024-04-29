@@ -192,7 +192,6 @@ def create_performance_envs(map_name, agent_pos, agent_dir):
                 raise ValueError(f"Invalid layout code: {layout[i, j]}")
     env.gen_obs()
     image = env.render()
-    plt.imsave(f"envs/performance_envs/{map_name}.png", image)
     with open(f"envs/performance_envs/{map_name}.env", "wb") as f:
         pickle.dump(env_wrapper, f)
 
