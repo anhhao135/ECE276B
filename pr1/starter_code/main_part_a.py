@@ -8,7 +8,7 @@ from csv import writer
 env_dir = "envs/known_envs"
 #this is to run the calculation for part A on all the known environments
 
-with open('known_envs_sequences.csv', 'a') as f_object: #save all optimal sequences in csv file
+with open("known_envs_sequences.csv", "w+") as f_object: #save all optimal sequences in csv file
     writer_object = writer(f_object)
     for env_file in os.listdir(env_dir):
         env_path = os.path.join(env_dir,env_file)

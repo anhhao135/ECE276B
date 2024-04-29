@@ -38,7 +38,7 @@ def getCurrentState(env, envInfo): #construct a custom state vector based on the
 
 def getNextPossibleStates(currentState, env): #given a state vector node, what are the possible next states?
     #the state cost to a possible state is simply 1, the cost of a valid control input
-    #otherwise, the stage cost is infinite and the control input is not considered to be optimal for the value function at time T
+    #otherwise, the stage cost is infinite and the control input is not considered to be optimal for the value function at time t
     #for a given current state, go through all the 5 possible control inputs and determine which is valid and the motion model output to get the next state vector
 
     possibleStates = np.zeros((5,6), dtype=np.int16) #initialize an empty list to contain at most all the 5 next valid state vectors that correspond to the 5 control inputs
@@ -91,7 +91,7 @@ def getNextPossibleStates(currentState, env): #given a state vector node, what a
                 possibleState[4] = 1 #motion model for an unlock door move is to change the vector state portion to unlock
                 possibleStates[4,:] = possibleState
 
-        #for any state, it is always valid to turn left or right in place
+        #for any state, it is always valid to turn left or right in place at a cost of 1
         turnRightState = currentState.copy()
         turnRightState[2:4] = rightDirection #motion model is to modify the agent direction
         possibleStates[2,:] = turnRightState
