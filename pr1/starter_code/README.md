@@ -24,3 +24,4 @@ Part B
 python main_part_b.py
 
 will calculate a single policy at the start for any 8x8 random environment and save the sequence gifs in "gif_random" as well as generate a .csv file containing the optimal control sequences for each. The run time can vary depending on the hardware but known to run for about 3 minutes on an i9 processor.
+NOTE: to save time for the grader, the policy has been pre-computed as "part_b_policy.txt" and will be used if it exists. To trigger the recalculation, delete the file.
