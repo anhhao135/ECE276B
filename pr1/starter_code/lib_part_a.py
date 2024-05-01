@@ -124,7 +124,7 @@ def calculateOptimalPolicy(env, info, timeHorizon):
     for initialDir in initialDirs:
         for initialDoor in initialDoors:
             for initialKey in initialKeys:
-                initialStates.append(createStateVector(goalPos, initialDir, initialDoor, initialKey)) #create the permutations
+                initialStates.append(createStateVector(goalPos, initialDir, initialDoor, initialKey)) #create the permutations of states with the position at the goal
 
     currentStates = np.atleast_2d(initialStates)
     visitedStates = currentStates.copy() #initialize the visited nodes to only contain the initial node

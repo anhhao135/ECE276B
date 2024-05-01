@@ -19,13 +19,7 @@ goalLocations = [np.array([5,1]), np.array([6,3]), np.array([5,6])] #these can o
 keyLocations = [np.array([1,1]), np.array([2,3]), np.array([1,6])] #these can occur with equal probabilities
 doorLocations = [np.array([4,2]), np.array([4,5])] #this is fixed
 
-#goalLocations = [np.array([2,0]), np.array([2,1]), np.array([2,2])] #these can occur with equal probabilities
-#keyLocations = [np.array([0,0]), np.array([0,1])] #these can occur with equal probabilities
-#doorLocations = [np.array([1,1]), np.array([1,2])] #this is fixed
-
-#initialPos = np.array([3,5], dtype=np.int16) #this is fixed
-#initialDir = np.array([0,-1], dtype=np.int16) #this is fixed
-timeHorizon = 50 #the policy calculation should terminate earlier than the horizon
+timeHorizon = 1000 #the policy calculation should terminate earlier than the horizon
 dimension = 8
 #--------------------------------------------------------------
 
@@ -33,17 +27,21 @@ dimension = 8
 
 optimalPolicy = {}
 
-if os.path.isfile('part_b_policy.txt'):
+if os.path.isfile('part_b_policy.txt'): #check if the pre-computed policy exists, this can save the grader time
     with open('part_b_policy.txt') as f: 
         data = f.read() 
     optimalPolicy = json.loads(data)
 else:
     start = time.time()
-    optimalPolicy = calculateSingleOptimalPolicy(timeHorizon, goalLocations, keyLocations, doorLocations, dimension)
+    optimalPolicy = calculateSingleOptimalPolicy(timeHorizon, goalLocations, keyLocations, doorLocations, dimension) #do a single optimal policy calculation given the random map parameters
     end = time.time()
     print(f"Optimal policy calculation took {end-start} seconds")
+    with open('part_b_policy.txt', 'w') as file:
+        file.write(json.dumps(optimalPolicy)) #save the policy dictionary as a file
 
-create_random_envs((3,5), UP)
+
+#this function will generate different initial poses of the agent for the 36 random maps to truly test the perfomance
+create_random_envs((3,5), UP) #this is the defined pose of the project hand out
 
 with open("random_envs_sequences.csv", "w+") as f_object: #save all optimal sequences in csv file
     writer_object = writer(f_object)

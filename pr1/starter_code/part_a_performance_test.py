@@ -3,16 +3,17 @@ from lib_part_a import *
 import warnings
 warnings.filterwarnings('ignore')
 import os
-from csv import writer
 from create_env import *
 
+#this is to test the perfomance of the policy in part A by customizing the agent's initial orientation for the known maps
 
+map_name = "doorkey-8x8-direct" #pick the known map
 
-map_name = "doorkey-8x8-direct"
+#choose the agent initial pose
 agent_start_pos = (2,6)
 agent_start_dir = DOWN
 
-create_performance_envs(map_name, agent_start_pos, agent_start_dir)
+create_performance_envs(map_name, agent_start_pos, agent_start_dir) #generate the environment
 
 
 env_dir = "envs/performance_envs"
@@ -20,9 +21,8 @@ env_file = map_name + ".env"
 
 env_path = os.path.join(env_dir,env_file)
 env, info = load_env(env_path)
-#env.agent_pos = agent_start_pos
 timeHorizon = 1000
-optimalPolicy = calculateOptimalPolicy(env, info, timeHorizon)
+optimalPolicy = calculateOptimalPolicy(env, info, timeHorizon) #calculate the policy
 
 seq = [] #initialize empty optimal sequence to be generated per step
 

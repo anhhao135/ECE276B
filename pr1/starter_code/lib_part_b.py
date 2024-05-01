@@ -1,7 +1,7 @@
 import numpy as np
 from tqdm import tqdm
  
-
+#functions for part B
 
 NONE = 0
 DOOR = 1
@@ -43,35 +43,11 @@ def createStateVector(currentPos, currentDir, goalPos, keyPos, doorState, curren
     state[12] = door2UnlockAttempted
     return state #this state can then be mapped to a control input from the optimal policy
 
+def getPreviousPossibleStates(currentState, randomMap, DOOR_1_POS): #given a state vector node, what are the possible previous states?
 
+    #see comments for implementation in lib_part_a; it contains explantations of core logic behind creating the possible states
+    #since part B involves a random map, we add logic to use the state vector to deduce what is actually in our surroundings vs. assuming for all cases
 
-def createEndGoalStates(goalState): #create a goal state with the agent facing all four different directions
-    #this is to discourage other exploratory branches from reaching the goal as their path will be sub-optimal
-    state1 = goalState.copy()
-    state1[2:4] = np.array([0,-1],dtype=np.int16)
-    
-    state2 = goalState.copy()
-    state2[2:4] = np.array([1,0],dtype=np.int16)
-    state3 = goalState.copy()
-    state3[2:4] = np.array([0,1],dtype=np.int16)
-    state4 = goalState.copy()
-    state4[2:4] = np.array([-1,0],dtype=np.int16)
-
-    visitedGoalStates = np.zeros((4,13), dtype=np.int16)
-    visitedGoalStates[0,:] = state1
-    visitedGoalStates[1,:] = state2
-    visitedGoalStates[2,:] = state3
-    visitedGoalStates[3,:] = state4
-    return visitedGoalStates
-
-
-def getNextPossibleStates(currentState, randomMap, DOOR_1_POS): #given a state vector node, what are the possible next states?
-    #the state cost to a possible state is simply 1, the cost of a valid control input
-    #otherwise, the stage cost is infinite and the control input is not considered to be optimal for the value function at time t
-    #for a given current state, go through all the 5 possible control inputs and determine which is valid and the motion model output to get the next state vector
-    #the difference here from part A is now we use a random map to query the potential of items exisitng at a cell instead of it always being there
-
-    #extract information about the environment and the agent from the custom current state vector
     pos = currentState[0:2]
     frontDirection = currentState[2:4]
     rightDirection = np.array([-frontDirection[1],frontDirection[0]])
@@ -79,14 +55,16 @@ def getNextPossibleStates(currentState, randomMap, DOOR_1_POS): #given a state v
     frontPos = pos + frontDirection
     rearPos = pos - frontDirection
 
-    goalPos = currentState[4:6]
     keyPos = currentState[6:8]
     doorState = currentState[8:10]
     keyPickedUp = currentState[10]
     door1UnlockAttempt = currentState[11]
     door2UnlockAttempt = currentState[12]
+
+    #here we first assume that both the front and rear objects are NONE, but we go through logic based on the current state vector to deduce what the objects actually are
     frontObject = NONE
     rearObject = NONE
+
     possibleStates = np.zeros((6,13), dtype=np.int16)
 
     #we now deduce what the front object could potentially be based on the current state
@@ -98,6 +76,8 @@ def getNextPossibleStates(currentState, randomMap, DOOR_1_POS): #given a state v
     elif (randomMap[frontPos[0], frontPos[1]] == WALL): #if the front object is a wall, then it is for sure a wall
         frontObject = WALL
 
+    #similar logic as above for deducing the rear object
+
     if (randomMap[rearPos[0], rearPos[1]] == DOOR):
         rearObject = DOOR
     if (randomMap[rearPos[0], rearPos[1]] == WALL):
@@ -105,24 +85,23 @@ def getNextPossibleStates(currentState, randomMap, DOOR_1_POS): #given a state v
     elif (np.array_equal(rearPos,keyPos)):
         rearObject = KEY
 
-    #now the expected object in front has been deduced and we can perform the motion model on the current state for all 5 control inputs
+    #now the expected object front and rear has been deduced, we can perform the inverse motion model on the current state for all 5 control inputs just like in part A, with the addition of two possible doors with four possible initial states
 
     if (rearObject == NONE):
         possibleState = currentState.copy()
         possibleState[0:2] = possibleState[0:2] - frontDirection
         possibleStates[0,:] = possibleState
-    elif (rearObject == DOOR):
-        if (np.array_equal(rearPos,DOOR_1_POS)):
-            if (doorState[0]):
+    elif (rearObject == DOOR): #if there was a door behind us
+        if (np.array_equal(rearPos,DOOR_1_POS)): #check which door it is, is it door 1?
+            if (doorState[0]): #check if door 1 is unlocked or locked initially, if unlocked
                 possibleState = currentState.copy()
-                possibleState[0:2] = possibleState[0:2] - frontDirection
+                possibleState[0:2] = possibleState[0:2] - frontDirection #then we could have moved forward from it
                 possibleStates[0,:] = possibleState
-            elif (keyPickedUp and door1UnlockAttempt):
-                
+            elif (keyPickedUp and door1UnlockAttempt): #if door 1 was locked initially, but we made an attempt at unlocking it, it probably is unlocked for us to move through
                 possibleState = currentState.copy()
-                possibleState[0:2] = possibleState[0:2] - frontDirection
+                possibleState[0:2] = possibleState[0:2] - frontDirection #then we could have moved forward from it
                 possibleStates[0,:] = possibleState
-        else:
+        else: #similar logic for door 2
             if (doorState[1]):
                 possibleState = currentState.copy()
                 possibleState[0:2] = possibleState[0:2] - frontDirection
@@ -137,16 +116,16 @@ def getNextPossibleStates(currentState, randomMap, DOOR_1_POS): #given a state v
         possibleStates[0,:] = possibleState
 
 
-    if (frontObject == DOOR):
-        if (np.array_equal(frontPos,DOOR_1_POS)):
-            if (not doorState[0] and door1UnlockAttempt):
+    if (frontObject == DOOR): #if there is a door in front of us
+        if (np.array_equal(frontPos,DOOR_1_POS)): #is it door 1?
+            if (not doorState[0] and door1UnlockAttempt): #if the door was initially locked and we did make an attempt at unlocking it
                 possibleState = currentState.copy()
-                possibleState[11] = 0 #attempt at unlocking door number 1
+                possibleState[11] = 0 #then reverse that attempt so it has not been done yet
                 possibleStates[4,:] = possibleState
-        else:
+        else: #similar logic for door 2
             if (not doorState[1] and door2UnlockAttempt):
                 possibleState = currentState.copy()
-                possibleState[12] = 0 #attempt at unlocking door number 2
+                possibleState[12] = 0 
                 possibleStates[4,:] = possibleState
     elif (frontObject == KEY and keyPickedUp):
         possibleState = currentState.copy()
@@ -174,15 +153,25 @@ def checkIfStateBeenVisited(state, statesVisitedList):
     return not np.all(sum) #check if there is a sum of 0, and if so that means the target state has been visited
 
 def calculateSingleOptimalPolicy(timeHorizon, goalLocations, keyLocations, doorLocations, dimension):
+    #core of the dynamic programming algorithm, just like in part A
 
     randomMap = constructRandomMap(goalLocations, keyLocations, doorLocations, dimension) #create the probabilistic map based on the random generation parameters
 
+    #first we construct all the possible termination states that are desirable i.e. at the goal positions
+    #but now we also do permutations of the possible map configurations
+    #we add [1,1] to the absolute cell coordinates due to the surrounding wall padding in the random map representation
     initialGoalLocations = np.array(goalLocations, dtype=np.int16) + np.array([1,1])
     initialKeyLocations = np.array(keyLocations, dtype=np.int16) + np.array([1,1])
     initialDirs = [np.array([0,1]), np.array([0,-1]), np.array([1,0]), np.array([-1,0])]
     initialDoorStates = [np.array([0,0]), np.array([0,1]), np.array([1,0]), np.array([1,1])]
-    #initialDoorUnlockAttemptedStates = [np.array([0,0]), np.array([0,1]), np.array([1,0]), np.array([1,1])]
-    initialDoorUnlockAttemptedStates = [np.array([0,0]), np.array([0,1]), np.array([1,0])]
+
+    #IMPORTANT EFFICIENCY BOOSTER
+    #we can increase run time before not considering both doors to be attempted at unlock by the time we reach the goal
+    #this is realistic because why would the agent need to unlock both doors?
+    #this also means technically the policy is *NOT* fully complete, but for the purposes of this project and time, it still does the job very well
+    initialDoorUnlockAttemptedStates = [np.array([0,0]), np.array([0,1]), np.array([1,0])] 
+
+
     initialKeyPickedUpStates = np.array([0,1])
 
     initialStates = []
@@ -195,9 +184,6 @@ def calculateSingleOptimalPolicy(timeHorizon, goalLocations, keyLocations, doorL
                         for initialKeyPickedUpState in initialKeyPickedUpStates:
                             initialStates.append(createStateVector(initialGoalLocation, initialDir, initialGoalLocation, initialKeyLocation, initialDoorState, initialKeyPickedUpState, initialDoorUnlockAttemptedState[0], initialDoorUnlockAttemptedState[1]))
 
-    
-    #testState = createStateVector(np.array([3,1]), np.array([0,-1]), np.array([3,1]), np.array([1,1]), np.array([0,0]), 1, 1, 0)
-    #initialStates = [testState]
 
     currentStates = np.atleast_2d(initialStates)
     visitedStates = currentStates.copy() #initialize the visited nodes to only contain the initial node
@@ -206,26 +192,25 @@ def calculateSingleOptimalPolicy(timeHorizon, goalLocations, keyLocations, doorL
     DOOR_1_POS = doorLocations[0] + np.array([1,1])
     #DOOR_2_POS = doorLocations[1] + np.array([1,1])
 
-    for t in tqdm (range (timeHorizon), desc="time horizon step"): #we will iterate up to a time horizon, and assume that the optimal cost-to-arrive at the current nodes is equal to t
-        print("------------------------------------------")
-        print("time: " + str(t))
-        print("current state count: " + str(currentStates.shape[0]))
+    for t in tqdm (range (timeHorizon), desc="time horizon step"): #we will iterate up to a time horizon
         
         nextStates = []
-        for currentStateIndex in tqdm (range (currentStates.shape[0]), desc="current state"): #iterate through all the "surviving" nodes with a cost-to-arrive of t; these still have potential to be part of the shortest path
+        for currentStateIndex in tqdm (range (currentStates.shape[0]), desc="current state"): #iterate through all the "surviving" nodes with a cost-to-go of t
             currentState = currentStates[currentStateIndex,:]
-            nextPossibleStates = getNextPossibleStates(currentState, randomMap, DOOR_1_POS) #for each surviving node, find all the potential next nodes with corresponding control inputs
+            nextPossibleStates = getPreviousPossibleStates(currentState, randomMap, DOOR_1_POS) #find all the possible nodes before this node
             for controlInput in range(5): #iterate through the 5 possible control inputs
-                nextPossibleState = nextPossibleStates[controlInput,:] #get the next node corresponding to that control input
-                if not (np.array_equal(nextPossibleState, np.zeros(13, dtype=np.int16))): #check if the stage cost for that control input is not infinite
-                    if not checkIfStateBeenVisited(nextPossibleState, visitedStates): #check if the state has been visited because then the cost-to-arrive is not optimal
-                        #at this point, the next node has been checked to satisfy both conditions such that the stage cost is 1, or else it would be infinite and not considered
+                nextPossibleState = nextPossibleStates[controlInput,:] #get the node that would use the corresponding control input to transition to the current node
+                if not (np.array_equal(nextPossibleState, np.zeros(6, dtype=np.int16))): #check if the stage cost for that control input is not infinite i.e. if all zeros then impossible for that control input to optimally lead to current node
+                    if not checkIfStateBeenVisited(nextPossibleState, visitedStates): #check if the state has been visited because then the cost-to-go is suboptimal i.e. node was already found at a previous t and has a dictionary entry
+                        #at this point, the next node has been checked to satisfy both conditions 1. possible to transition from 2. has not been visited for the stage cost to be 1 and therefore optimal
                         visitedStates = np.vstack((visitedStates, nextPossibleState)) #add this next node to the visited states
                         nextStates.append(nextPossibleState) #add this next node to the next states list, which will be the future surviving current states
-                        offsetNextPossibleState = nextPossibleState - np.array([1,1,0,0,1,1,1,1,0,0,0,0,0]) #correct offset
+                        offsetNextPossibleState = nextPossibleState - np.array([1,1,0,0,1,1,1,1,0,0,0,0,0]) #correct offset of wall padding
                         policyDict[np.array2string(offsetNextPossibleState)[1:-1]] = controlInput
 
-        currentStates = np.array(nextStates)
-        if (len(nextStates) == 0):
+        currentStates = np.array(nextStates) #all surviving states have equal optimal cost-to-go values and therefore survive
+
+        if (len(nextStates) == 0): #if every possible state has an optimal cost-to-go value found, and therefore a dictionary entry, then the complete policy has been found, so terminate the algorithm
             break
+
     return policyDict
