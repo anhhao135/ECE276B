@@ -7,11 +7,11 @@ from create_env import *
 
 #this is to test the perfomance of the policy in part A by customizing the agent's initial orientation for the known maps
 
-map_name = "doorkey-8x8-direct" #pick the known map
+map_name = "doorkey-8x8-shortcut" #pick the known map
 
 #choose the agent initial pose
-agent_start_pos = (2,6)
-agent_start_dir = DOWN
+agent_start_pos = (1,5)
+agent_start_dir = UP
 
 create_performance_envs(map_name, agent_start_pos, agent_start_dir) #generate the environment
 
