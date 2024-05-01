@@ -6,17 +6,20 @@ import os
 from csv import writer
 
 
+#this is to generate optimal policies for the known environments
+#then use it to generate optimal sequences from start to finish
+#save trajectories as gifs
+
 
 env_dir = "envs/known_envs"
 
-
 with open("known_envs_sequences.csv", "w+") as f_object: #save all optimal sequences in csv file
     writer_object = writer(f_object)
-    for env_file in os.listdir(env_dir):
+    for env_file in os.listdir(env_dir): #go through all the known environments
         env_path = os.path.join(env_dir,env_file)
         env, info = load_env(env_path)
-        timeHorizon = 1000
-        optimalPolicy = calculateOptimalPolicy(env, info, timeHorizon)
+        timeHorizon = 1000 #realistically the time horizon is equal to the number of possible states to guarantee termination, but this should happen well before that
+        optimalPolicy = calculateOptimalPolicy(env, info, timeHorizon) #calculate the optimal policy for the environment and save it in a dictionary
 
         seq = [] #initialize empty optimal sequence to be generated per step
 
@@ -26,9 +29,10 @@ with open("known_envs_sequences.csv", "w+") as f_object: #save all optimal seque
 
             #UPDATE CURRENT STATE ----------------------------------------------------------------------------
 
-            currentState = getCurrentState(env, info)
+            currentState = getCurrentState(env, info) #query the environment and construct the custom-defined state vector
 
             #UPDATE CURRENT STATE ----------------------------------------------------------------------------
+
 
 
             #GET CONTROL INPUT FROM POLICY -------------------------------------------------------------------
