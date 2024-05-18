@@ -10,3 +10,4 @@ def checkCollision(point1, point2, block):
     rx = lineDirection[0]
     ry = lineDirection[1]
     rz = lineDirection[2]
+    
