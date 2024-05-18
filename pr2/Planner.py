@@ -1,4 +1,6 @@
 import numpy as np
+from lib import *
+
 
 class MyPlanner:
   __slots__ = ['boundary', 'blocks']
@@ -31,11 +33,16 @@ class MyPlanner:
         
         valid = True
         for k in range(self.blocks.shape[0]):
+          '''
           if( next[0] >= self.blocks[k,0] and next[0] <= self.blocks[k,3] and\
               next[1] >= self.blocks[k,1] and next[1] <= self.blocks[k,4] and\
               next[2] >= self.blocks[k,2] and next[2] <= self.blocks[k,5] ):
             valid = False
             break
+          '''
+          for block in self.blocks:
+            if checkCollision(path[-1], next, block) == True:
+              valid = False
         if not valid:
           continue
         

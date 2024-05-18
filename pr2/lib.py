@@ -1,15 +1,12 @@
 import numpy as np
 
 def checkCollision(point1, point2, block):
-
-
     lx = block[0]
     ly = block[1]
     lz = block[2]
     hx = block[3]
     hy = block[4]
     hz = block[5]
-
 
     lineDirection = point2 - point1
     rx = lineDirection[0]
@@ -45,9 +42,6 @@ def checkCollision(point1, point2, block):
 
     t_close = np.max(np.array([tx_close, ty_close, tz_close]))
     t_far = np.min(np.array([tx_far, ty_far, tz_far]))
-
-    print(t_close)
-    print(t_far)
 
     if (t_close > 1 or t_close < 0) and (t_far > 1 or t_far < 0) and (t_close * t_far > 0):
         return False

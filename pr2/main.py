@@ -117,6 +117,15 @@ def test_single_cube(verbose = True):
   print('Success: %r'%success)
   print('Path length: %d'%pathlength)
   print('\n')
+
+def test_my_cube(verbose = True):
+  print('Running single cube test...\n') 
+  start = np.array([2.3, 2.3, 1.3])
+  goal = np.array([7.0, 7.0, 5.5])
+  success, pathlength = runtest('./maps/my_cube.txt', start, goal, verbose)
+  print('Success: %r'%success)
+  print('Path length: %d'%pathlength)
+  print('\n')
   
   
 def test_maze(verbose = True):
@@ -180,13 +189,14 @@ def test_monza(verbose = True):
 
 
 if __name__=="__main__":
-  test_single_cube()
-  test_maze()
-  test_flappy_bird()
-  test_monza()
-  test_window()
-  test_tower()
-  test_room()
+  #test_single_cube()
+  #test_maze()
+  #test_flappy_bird()
+  #test_monza()
+  #test_window()
+  #test_tower()
+  #test_room()
+  test_my_cube()
   plt.show(block=True)
 
 
