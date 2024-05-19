@@ -9,8 +9,8 @@ from lib import *
 
 
 boundary, blocks = load_map('./maps/my_cube.txt')
-point1 = np.array([2,-3,2])
-point2 = np.array([2.1,4,2])
+point1 = np.array([1,-3,1])
+point2 = np.array([1,-2,1])
 path = np.vstack((point1, point2))
 fig, ax, hb, hs, hg = draw_map(boundary, blocks, point1, point2)
 ax.plot(path[:,0],path[:,1],path[:,2],'r-')
