@@ -1,5 +1,34 @@
 import numpy as np
 
+
+
+class Node():
+    def __init__(self, label, g, h, childrenAndCosts):
+        self.label = label
+        self.g = g
+        self.h = h
+        self.parent = None
+        self.childrenAndCosts = childrenAndCosts
+    def print(self):
+        print("--------------------------------------")
+        print("label: " + str(self.label))
+        print("g: " + str(self.g))
+        print("h: " + str(self.h))
+        print("parent: " + str(self.parent))
+        print("(children,cost): " + str(self.childrenAndCosts))
+        print("--------------------------------------")
+
+def checkCollisionPointAABB(point, blocks):
+    collision = False
+    for block in blocks:
+        if point[0] >= block[0] and point[0] <= block[3] and\
+            point[1] >= block[1] and point[1] <= block[4] and\
+            point[2] >= block[2] and point[2] <= block[5]:
+                collision = True
+                break
+    return collision
+    
+
 def checkCollision(point1, point2, block): #slab technique with modification 
     lx = block[0]
     ly = block[1]
@@ -47,5 +76,3 @@ def checkCollision(point1, point2, block): #slab technique with modification
         return False
     else:
         return t_close <= t_far
-
-
