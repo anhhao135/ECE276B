@@ -120,8 +120,8 @@ def test_single_cube(verbose = True):
 
 def test_my_cube(verbose = True):
   print('Running single cube test...\n') 
-  start = np.array([2.3, 2.3, 1.3])
-  goal = np.array([7.0, 7.0, 5.5])
+  start = np.array([0, 0, 0])
+  goal = np.array([4, 4, 0])
   success, pathlength = runtest('./maps/my_cube.txt', start, goal, verbose)
   print('Success: %r'%success)
   print('Path length: %d'%pathlength)

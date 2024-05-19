@@ -15,11 +15,12 @@ class MyPlanner:
     numofdirs = 26
     [dX,dY,dZ] = np.meshgrid([-1,0,1],[-1,0,1],[-1,0,1])
     dR = np.vstack((dX.flatten(),dY.flatten(),dZ.flatten()))
+    print(dR)
     dR = np.delete(dR,13,axis=1)
     dR = dR / np.sqrt(np.sum(dR**2,axis=0)) / 2.0
     print(dR)
     
-    for _ in range(2000):
+    for _ in range(10):
       mindisttogoal = 1000000
       node = None
       for k in range(numofdirs):
@@ -56,6 +57,8 @@ class MyPlanner:
         break
       
       path.append(node)
+
+      print(sum((path[-1]-goal)**2))
       
       # Check if done
       if sum((path[-1]-goal)**2) <= 0.1:

@@ -1,6 +1,6 @@
 import numpy as np
 
-def checkCollision(point1, point2, block):
+def checkCollision(point1, point2, block): #slab technique with modification 
     lx = block[0]
     ly = block[1]
     lz = block[2]
