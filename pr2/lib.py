@@ -22,9 +22,9 @@ class Node():
 def checkCollisionPointAABB(point, blocks):
     collision = False
     for block in blocks:
-        if point[0] >= block[0] and point[0] <= block[3] and\
-            point[1] >= block[1] and point[1] <= block[4] and\
-            point[2] >= block[2] and point[2] <= block[5]:
+        if point[0] > block[0] and point[0] < block[3] and\
+            point[1] > block[1] and point[1] < block[4] and\
+            point[2] > block[2] and point[2] < block[5]:
                 collision = True
                 break
     return collision
@@ -71,6 +71,16 @@ def checkCollision(point1, point2, block):
         return t_close <= t_far
 
 
+def checkCollisionFreeEntireMap(point1, point2, blocks):
+    collisionFree = True
+    for block in blocks:
+        if checkCollision(point1, point2, block):
+            collisionFree = False
+        if not collisionFree:
+            break
+    return collisionFree
+
+
 def weightedAStarHeuristic(point, goal, epsilon):
     return epsilon * np.linalg.norm(point - goal)
 
@@ -79,16 +89,18 @@ def weightedAStar(graph, START_NODE, GOAL_NODE, horizon):
     closed = []
     open[START_NODE] = graph[START_NODE].g + graph[START_NODE].h
 
+
+
     i = 0
 
     while GOAL_NODE not in closed:
 
-        if i == horizon:
-             return 0, False
-
-        print(i)
+        if i == horizon or len(open) == 0:
+             print("failed")
+             return None, 0
 
         currentNode = graph[open.pop()]
+        #print(currentNode.childrenAndCosts)
         #print("current node: " + str(currentNode.label))
 
         closed.append(currentNode.label)
@@ -181,17 +193,9 @@ def searchBasedPlan(start, goal, mapDirectory, GRID_UPSCALE, horizon, epsilon):
             i = i + 1
             for directionPossible in directionsPossible:
                 if tuple(node.label + directionPossible.astype(np.int16)) in graph:
-                    collisionFree = True
-                    for block in blocks:
-                        if checkCollision(np.array(node.label) / GRID_UPSCALE, (np.array(node.label) + directionPossible.astype(np.int16)) / GRID_UPSCALE, block):
-                            collisionFree = False
-                        if not collisionFree:
-                            break
-                    if collisionFree:
+                    if checkCollisionFreeEntireMap(np.array(node.label) / GRID_UPSCALE, (np.array(node.label) + directionPossible.astype(np.int16)) / GRID_UPSCALE, blocks):
                         cost = np.linalg.norm(directionPossible)
                         node.childrenAndCosts.append((tuple(node.label + directionPossible.astype(np.int16)), cost))
-
-
 
 
     START_NODE = tuple(startCoordinate)
@@ -234,60 +238,12 @@ def searchBasedPlan(start, goal, mapDirectory, GRID_UPSCALE, horizon, epsilon):
 
     shortestPath, totalCost = weightedAStar(graph, START_NODE, GOAL_NODE, horizon)
 
-    while False:
-
-        open = pqdict()
-        closed = []
-
-        
-
-        open[START_NODE] = graph[START_NODE].g + graph[START_NODE].h
-
-        i = 0
-
-        while GOAL_NODE not in closed:
-
-            if i == horizon:
-                return 0, False
-
-            print(i)
-
-            currentNode = graph[open.pop()]
-            #print("current node: " + str(currentNode.label))
-
-            closed.append(currentNode.label)
-            for (child, cost) in currentNode.childrenAndCosts:
-                if child not in closed:
-                    if graph[child].g > currentNode.g + cost:
-                        graph[child].g = currentNode.g + cost
-                        graph[child].parent = currentNode.label
-                        open[child] = graph[child].g + graph[child].h
-            
-            #print("open: " + str(open))
-            #print("closed: " + str(closed))
-
-            i = i + 1
-
-        shortestPath = [GOAL_NODE]
-
-        currentTraceNode = GOAL_NODE
-
-        totalCost = 0
-
-        while currentTraceNode != START_NODE:
-            cost = np.linalg.norm(np.array(graph[currentTraceNode].label) - np.array(graph[currentTraceNode].parent))
-            totalCost = totalCost + cost
-            currentTraceNode = graph[currentTraceNode].parent
-            shortestPath.append(currentTraceNode)
-
-        shortestPath.reverse()
-        shortestPath = np.array(shortestPath)
-
     ax.plot(shortestPath[:,0] / GRID_UPSCALE,shortestPath[:,1] / GRID_UPSCALE,shortestPath[:,2] / GRID_UPSCALE,'r-')
                     
     #plt.show(block=True)
 
     return totalCost / GRID_UPSCALE, True
+
 
 
 def sampleCSpace(boundary):
@@ -311,12 +267,75 @@ def sampleCFreeSpace(boundary, blocks):
     return sampledPoint
 
 def nearestNode(point, graph): #graph is an n x 3 set of verticies, returns index of closest node
+    graph = np.array(graph)
     distanceToOtherNodes = np.linalg.norm(graph - point, axis=1)
     indexNodeClosest = np.argmin(distanceToOtherNodes)
     return indexNodeClosest
 
 def nearNodes(point, graph, radius): #graph is an n x 3 set of verticies, returns indexes of close nodes
+    graph = np.array(graph)
     distanceToOtherNodes = np.linalg.norm(graph - point, axis=1)
     indexesNodesClose = np.where(distanceToOtherNodes < radius)[0]
     return indexesNodesClose
+
+def steerToNode(point1, point2, epsilon):
+    distance = np.linalg.norm(point2 - point1)
+    if distance <= epsilon:
+        return point2
+    else:
+        normalizedVector = (point2 - point1) / distance
+        return point1 + (epsilon * normalizedVector)
+
+
+def samplingBasedPlan(start, goal, mapDirectory, nodesToSample, horizon, epsilon, steerEpsilon):
+
+    boundary, blocks = load_map(mapDirectory)
+    fig, ax, hb, hs, hg = draw_map(boundary, blocks, start, goal)
+    boundary = boundary.flatten()
+
+    START_NODE = tuple(start)
+    GOAL_NODE = tuple(goal)
+
+    graphList = []
+    graphDict = {}
+
+    graphList.append(start)
+    graphDict[START_NODE] = Node(START_NODE, 0, weightedAStarHeuristic(start, goal, epsilon), [])
+    shortestPath = None
+    totalCost = None
+
+    for i in range(nodesToSample):
+        print(i)
+        if (i+1) % 100 == 0:
+            pointRand = goal
+        else:
+            pointRand = sampleCFreeSpace(boundary, blocks)
+        pointNearest = graphList[nearestNode(pointRand, graphList)]
+        pointNew = steerToNode(pointNearest, pointRand, steerEpsilon)
+        if checkCollisionFreeEntireMap(pointNearest, pointNew, blocks):
+            graphList.append(pointNew)
+            graphDict[tuple(pointNew)] = Node(tuple(pointNew), np.inf, weightedAStarHeuristic(pointNew, goal, epsilon), [])
+            cost = np.linalg.norm(pointNearest - pointNew)
+            graphDict[tuple(pointNearest)].childrenAndCosts.append((tuple(pointNew), cost))
+            graphDict[tuple(pointNew)].childrenAndCosts.append((tuple(pointNearest), cost))
+        if np.array_equal(pointNew, goal):
+            
+            shortestPath, totalCost = weightedAStar(graphDict, START_NODE, GOAL_NODE, horizon)
+            if totalCost != 0:
+                break
+            for node in graphDict.values():
+                if node.label != START_NODE:
+                    node.g = np.inf
+                    node.parent = None
+    
+    #for node in graphDict.values():
+        #node.print()
+
+
+    ax.plot(shortestPath[:,0],shortestPath[:,1],shortestPath[:,2],'r-')
+
+
+    return totalCost, True
+
+    
 

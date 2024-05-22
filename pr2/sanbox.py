@@ -8,31 +8,19 @@ from lib import *
 from pqdict import pqdict
 
 
-boundary, blocks = load_map('./maps/single_cube.txt')
-boundary = boundary.flatten()
-
-print(boundary)
-
 fig = plt.figure()
 ax = plt.axes(projection='3d')
 
-graph = []
+point1 = np.array([1,1,1])
+point2 = np.array([-6,-7,-8])
 
-for i in range(50):
-    #point = sampleCSpace(boundary)
-    point = sampleCFreeSpace(boundary, blocks)
-    ax.scatter3D(point[0], point[1], point[2], c='yellow')
-    graph.append(point)
+pointSteer = steerToNode(point1, point2, 50)
 
+ax.scatter3D(point1[0], point1[1], point1[2], c='red')
+ax.scatter3D(point2[0], point2[1], point2[2], c='green')
+ax.scatter3D(pointSteer[0], pointSteer[1], pointSteer[2], c='blue')
 
-graph = np.array(graph)
+print(np.linalg.norm(point1 - pointSteer))
 
-
-testPoint = np.array([2.5,2.5,5])
-ax.scatter3D(testPoint[0], testPoint[1], testPoint[2], c='red')
-
-#closePointsIndex = nearNodes(testPoint, graph, 7)
-closePointsIndex = nearestNode(testPoint, graph)
-point = graph[closePointsIndex]
-ax.scatter3D(point[0], point[1], point[2], c='green')
 plt.show(block=True)
+

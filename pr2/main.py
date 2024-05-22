@@ -189,8 +189,10 @@ if __name__=="__main__":
   #test_monza()
   #test_window()
   #test_tower()
-  test_room()
-
+  #test_room()
+  start = np.array([0.5, 1.0, 4.9])
+  goal = np.array([3.8, 1.0, 0.1])
+  samplingBasedPlan(start, goal,'./maps/monza.txt', 200000, 100000, 5, 0.1)
   plt.show(block=True)
 
 
