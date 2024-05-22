@@ -71,8 +71,11 @@ def checkCollision(point1, point2, block):
         return t_close <= t_far
 
 
+def weightedAStarHeuristic(point, goal, epsilon):
+    return epsilon * np.linalg.norm(point - goal)
 
-def searchBasedPlan(start, goal, mapDirectory, GRID_UPSCALE, horizon):
+
+def searchBasedPlan(start, goal, mapDirectory, GRID_UPSCALE, horizon, epsilon):
     CLOSE_THRESHOLD = 2
     boundary, blocks = load_map(mapDirectory)
 
@@ -124,10 +127,10 @@ def searchBasedPlan(start, goal, mapDirectory, GRID_UPSCALE, horizon):
     graph = {}
 
     for meshPoint in validMeshPoints.astype(np.int16):
-            graph[tuple(meshPoint)] = Node(tuple(meshPoint), np.inf, np.linalg.norm(meshPoint - goalCoordinate), [])
+            graph[tuple(meshPoint)] = Node(tuple(meshPoint), np.inf, weightedAStarHeuristic(meshPoint, goalCoordinate, epsilon), [])
 
     for node in graph.values():
-            #print(i / totalMeshPoints)
+            print(i / totalMeshPoints)
             i = i + 1
             for directionPossible in directionsPossible:
                 if tuple(node.label + directionPossible.astype(np.int16)) in graph:
@@ -151,7 +154,7 @@ def searchBasedPlan(start, goal, mapDirectory, GRID_UPSCALE, horizon):
 
 
     if START_NODE not in graph:
-        graph[START_NODE] = Node(START_NODE, np.inf, np.linalg.norm(startCoordinate - goalCoordinate), [])
+        graph[START_NODE] = Node(START_NODE, np.inf, weightedAStarHeuristic(start, goalCoordinate, epsilon), [])
         distanceToOtherNodes = np.linalg.norm(validMeshPoints - startCoordinate, axis=1)
         indexNodesClose = np.where(distanceToOtherNodes < CLOSE_THRESHOLD)[0]
         for index in indexNodesClose:
@@ -196,7 +199,7 @@ def searchBasedPlan(start, goal, mapDirectory, GRID_UPSCALE, horizon):
         if i == horizon:
              return 0, False
 
-        #print(i)
+        print(i)
 
         currentNode = graph[open.pop()]
         #print("current node: " + str(currentNode.label))
