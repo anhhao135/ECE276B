@@ -4,6 +4,10 @@ import matplotlib.pyplot as plt; plt.ion()
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import Planner
+from lib import *
+
+import warnings
+warnings.filterwarnings("ignore")
 
 def tic():
   return time.time()
@@ -113,28 +117,18 @@ def test_single_cube(verbose = True):
   print('Running single cube test...\n') 
   start = np.array([2.3, 2.3, 1.3])
   goal = np.array([7.0, 7.0, 5.5])
-  success, pathlength = runtest('./maps/single_cube.txt', start, goal, verbose)
+  pathlength, success = searchBasedPlan(start, goal,'./maps/single_cube.txt', 1, 10000)
   print('Success: %r'%success)
-  print('Path length: %d'%pathlength)
+  print('Path length: %f'%pathlength)
   print('\n')
-
-def test_my_cube(verbose = True):
-  print('Running single cube test...\n') 
-  start = np.array([0, 0, 0])
-  goal = np.array([4, 4, 0])
-  success, pathlength = runtest('./maps/my_cube.txt', start, goal, verbose)
-  print('Success: %r'%success)
-  print('Path length: %d'%pathlength)
-  print('\n')
-  
   
 def test_maze(verbose = True):
   print('Running maze test...\n') 
   start = np.array([0.0, 0.0, 1.0])
   goal = np.array([12.0, 12.0, 5.0])
-  success, pathlength = runtest('./maps/maze.txt', start, goal, verbose)
+  pathlength, success = searchBasedPlan(start, goal,'./maps/maze.txt', 0.8, 10000)
   print('Success: %r'%success)
-  print('Path length: %d'%pathlength)
+  print('Path length: %f'%pathlength)
   print('\n')
 
     
@@ -142,9 +136,9 @@ def test_window(verbose = True):
   print('Running window test...\n') 
   start = np.array([0.2, -4.9, 0.2])
   goal = np.array([6.0, 18.0, 3.0])
-  success, pathlength = runtest('./maps/window.txt', start, goal, verbose)
+  pathlength, success = searchBasedPlan(start, goal,'./maps/window.txt', 1, 10000)
   print('Success: %r'%success)
-  print('Path length: %d'%pathlength)
+  print('Path length: %f'%pathlength)
   print('\n')
 
   
@@ -152,9 +146,9 @@ def test_tower(verbose = True):
   print('Running tower test...\n') 
   start = np.array([2.5, 4.0, 0.5])
   goal = np.array([4.0, 2.5, 19.5])
-  success, pathlength = runtest('./maps/tower.txt', start, goal, verbose)
+  pathlength, success = searchBasedPlan(start, goal,'./maps/tower.txt', 1, 10000)
   print('Success: %r'%success)
-  print('Path length: %d'%pathlength)
+  print('Path length: %f'%pathlength)
   print('\n')
 
      
@@ -162,9 +156,9 @@ def test_flappy_bird(verbose = True):
   print('Running flappy bird test...\n') 
   start = np.array([0.5, 2.5, 5.5])
   goal = np.array([19.0, 2.5, 5.5])
-  success, pathlength = runtest('./maps/flappy_bird.txt', start, goal, verbose)
+  pathlength, success = searchBasedPlan(start, goal,'./maps/flappy_bird.txt', 1, 10000)
   print('Success: %r'%success)
-  print('Path length: %d'%pathlength) 
+  print('Path length: %f'%pathlength)
   print('\n')
 
   
@@ -172,9 +166,9 @@ def test_room(verbose = True):
   print('Running room test...\n') 
   start = np.array([1.0, 5.0, 1.5])
   goal = np.array([9.0, 7.0, 1.5])
-  success, pathlength = runtest('./maps/room.txt', start, goal, verbose)
+  pathlength, success = searchBasedPlan(start, goal,'./maps/room.txt', 1.5, 10000)
   print('Success: %r'%success)
-  print('Path length: %d'%pathlength)
+  print('Path length: %f'%pathlength)
   print('\n')
 
 
@@ -182,21 +176,21 @@ def test_monza(verbose = True):
   print('Running monza test...\n')
   start = np.array([0.5, 1.0, 4.9])
   goal = np.array([3.8, 1.0, 0.1])
-  success, pathlength = runtest('./maps/monza.txt', start, goal, verbose)
+  pathlength, success = searchBasedPlan(start, goal,'./maps/monza.txt', 1.5, 10000)
   print('Success: %r'%success)
-  print('Path length: %d'%pathlength)
+  print('Path length: %f'%pathlength)
   print('\n')
 
 
 if __name__=="__main__":
-  #test_single_cube()
-  #test_maze()
-  #test_flappy_bird()
-  #test_monza()
-  #test_window()
-  #test_tower()
-  #test_room()
-  test_my_cube()
+  test_single_cube()
+  test_maze()
+  test_flappy_bird()
+  test_monza()
+  test_window()
+  test_tower()
+  test_room()
+
   plt.show(block=True)
 
 

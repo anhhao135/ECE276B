@@ -7,11 +7,11 @@ from main import *
 from lib import *
 from pqdict import pqdict
 
-GRID_UPSCALE = 1.5 #meters
+GRID_UPSCALE = 0.8 #meters
 DECIMAL_PLACE_ROUND = 3
-CLOSE_THRESHOLD = 5
+CLOSE_THRESHOLD = 2
 
-boundary, blocks = load_map('./maps/monza.txt')
+boundary, blocks = load_map('./maps/maze.txt')
 
 meshX = np.arange(boundary[0,0] * GRID_UPSCALE, (boundary[0,3] * GRID_UPSCALE) + 1)
 meshY = np.arange(boundary[0,1] * GRID_UPSCALE, (boundary[0,4] * GRID_UPSCALE) + 1)
@@ -22,8 +22,8 @@ meshX, meshY, meshZ = np.meshgrid(meshX, meshY, meshZ)
 mesh = np.vstack((meshX.flatten(),meshY.flatten(),meshZ.flatten())).T
 
 
-start = np.array([1.0, 5.0, 1.5])
-goal = np.array([9.0, 7.0, 1.5])
+start = np.array([0.0, 0.0, 1.0])
+goal = np.array([12.0, 12.0, 5.0])
 fig, ax, hb, hs, hg = draw_map(boundary, blocks, start, goal)
 
 
