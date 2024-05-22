@@ -22,9 +22,9 @@ class Node():
 def checkCollisionPointAABB(point, blocks):
     collision = False
     for block in blocks:
-        if point[0] > block[0] and point[0] < block[3] and\
-            point[1] > block[1] and point[1] < block[4] and\
-            point[2] > block[2] and point[2] < block[5]:
+        if point[0] >= block[0] and point[0] <= block[3] and\
+            point[1] >= block[1] and point[1] <= block[4] and\
+            point[2] >= block[2] and point[2] <= block[5]:
                 collision = True
                 break
     return collision
@@ -74,7 +74,54 @@ def checkCollision(point1, point2, block):
 def weightedAStarHeuristic(point, goal, epsilon):
     return epsilon * np.linalg.norm(point - goal)
 
+def weightedAStar(graph, START_NODE, GOAL_NODE, horizon):
+    open = pqdict()
+    closed = []
+    open[START_NODE] = graph[START_NODE].g + graph[START_NODE].h
 
+    i = 0
+
+    while GOAL_NODE not in closed:
+
+        if i == horizon:
+             return 0, False
+
+        print(i)
+
+        currentNode = graph[open.pop()]
+        #print("current node: " + str(currentNode.label))
+
+        closed.append(currentNode.label)
+        for (child, cost) in currentNode.childrenAndCosts:
+            if child not in closed:
+                if graph[child].g > currentNode.g + cost:
+                    graph[child].g = currentNode.g + cost
+                    graph[child].parent = currentNode.label
+                    open[child] = graph[child].g + graph[child].h
+        
+        #print("open: " + str(open))
+        #print("closed: " + str(closed))
+
+        i = i + 1
+
+    shortestPath = [GOAL_NODE]
+
+    currentTraceNode = GOAL_NODE
+
+    totalCost = 0
+
+    while currentTraceNode != START_NODE:
+        cost = np.linalg.norm(np.array(graph[currentTraceNode].label) - np.array(graph[currentTraceNode].parent))
+        totalCost = totalCost + cost
+        currentTraceNode = graph[currentTraceNode].parent
+        shortestPath.append(currentTraceNode)
+
+    shortestPath.reverse()
+    shortestPath = np.array(shortestPath)
+
+    return shortestPath, totalCost
+
+     
 def searchBasedPlan(start, goal, mapDirectory, GRID_UPSCALE, horizon, epsilon):
     CLOSE_THRESHOLD = 2
     boundary, blocks = load_map(mapDirectory)
@@ -155,8 +202,7 @@ def searchBasedPlan(start, goal, mapDirectory, GRID_UPSCALE, horizon, epsilon):
 
     if START_NODE not in graph:
         graph[START_NODE] = Node(START_NODE, np.inf, weightedAStarHeuristic(start, goalCoordinate, epsilon), [])
-        distanceToOtherNodes = np.linalg.norm(validMeshPoints - startCoordinate, axis=1)
-        indexNodesClose = np.where(distanceToOtherNodes < CLOSE_THRESHOLD)[0]
+        indexNodesClose = nearNodes(startCoordinate, validMeshPoints, CLOSE_THRESHOLD)
         for index in indexNodesClose:
             nearbyCoordinate = validMeshPoints[index,:]
             collisionFree = True
@@ -171,8 +217,7 @@ def searchBasedPlan(start, goal, mapDirectory, GRID_UPSCALE, horizon, epsilon):
 
     if GOAL_NODE not in graph:
         graph[GOAL_NODE] = Node(GOAL_NODE, np.inf, 0, [])
-        distanceToOtherNodes = np.linalg.norm(validMeshPoints - goalCoordinate, axis=1)
-        indexNodesClose = np.where(distanceToOtherNodes < CLOSE_THRESHOLD)[0]
+        indexNodesClose = nearNodes(goalCoordinate, validMeshPoints, CLOSE_THRESHOLD)
         for index in indexNodesClose:
             nearbyCoordinate = validMeshPoints[index,:]
             collisionFree = True
@@ -185,55 +230,93 @@ def searchBasedPlan(start, goal, mapDirectory, GRID_UPSCALE, horizon, epsilon):
                 cost = np.linalg.norm(startCoordinate - nearbyCoordinate)
                 graph[tuple(nearbyCoordinate)].childrenAndCosts.append((GOAL_NODE, cost))
 
-    open = pqdict()
-    closed = []
-
     graph[START_NODE].g = 0
 
-    open[START_NODE] = graph[START_NODE].g + graph[START_NODE].h
+    shortestPath, totalCost = weightedAStar(graph, START_NODE, GOAL_NODE, horizon)
 
-    i = 0
+    while False:
 
-    while GOAL_NODE not in closed:
+        open = pqdict()
+        closed = []
 
-        if i == horizon:
-             return 0, False
-
-        print(i)
-
-        currentNode = graph[open.pop()]
-        #print("current node: " + str(currentNode.label))
-
-        closed.append(currentNode.label)
-        for (child, cost) in currentNode.childrenAndCosts:
-            if child not in closed:
-                if graph[child].g > currentNode.g + cost:
-                    graph[child].g = currentNode.g + cost
-                    graph[child].parent = currentNode.label
-                    open[child] = graph[child].g + graph[child].h
         
-        #print("open: " + str(open))
-        #print("closed: " + str(closed))
 
-        i = i + 1
+        open[START_NODE] = graph[START_NODE].g + graph[START_NODE].h
 
-    shortestPath = [GOAL_NODE]
+        i = 0
 
-    currentTraceNode = GOAL_NODE
+        while GOAL_NODE not in closed:
 
-    totalCost = 0
+            if i == horizon:
+                return 0, False
 
-    while currentTraceNode != START_NODE:
-        cost = np.linalg.norm(np.array(graph[currentTraceNode].label) - np.array(graph[currentTraceNode].parent))
-        totalCost = totalCost + cost
-        currentTraceNode = graph[currentTraceNode].parent
-        shortestPath.append(currentTraceNode)
+            print(i)
 
-    shortestPath.reverse()
-    shortestPath = np.array(shortestPath)
+            currentNode = graph[open.pop()]
+            #print("current node: " + str(currentNode.label))
+
+            closed.append(currentNode.label)
+            for (child, cost) in currentNode.childrenAndCosts:
+                if child not in closed:
+                    if graph[child].g > currentNode.g + cost:
+                        graph[child].g = currentNode.g + cost
+                        graph[child].parent = currentNode.label
+                        open[child] = graph[child].g + graph[child].h
+            
+            #print("open: " + str(open))
+            #print("closed: " + str(closed))
+
+            i = i + 1
+
+        shortestPath = [GOAL_NODE]
+
+        currentTraceNode = GOAL_NODE
+
+        totalCost = 0
+
+        while currentTraceNode != START_NODE:
+            cost = np.linalg.norm(np.array(graph[currentTraceNode].label) - np.array(graph[currentTraceNode].parent))
+            totalCost = totalCost + cost
+            currentTraceNode = graph[currentTraceNode].parent
+            shortestPath.append(currentTraceNode)
+
+        shortestPath.reverse()
+        shortestPath = np.array(shortestPath)
 
     ax.plot(shortestPath[:,0] / GRID_UPSCALE,shortestPath[:,1] / GRID_UPSCALE,shortestPath[:,2] / GRID_UPSCALE,'r-')
                     
     #plt.show(block=True)
 
     return totalCost / GRID_UPSCALE, True
+
+
+def sampleCSpace(boundary):
+     minX = boundary[0]
+     minY = boundary[1]
+     minZ = boundary[2]
+     maxX = boundary[3]
+     maxY = boundary[4]
+     maxZ = boundary[5]
+
+     sampleX = np.random.uniform(minX, maxX)
+     sampleY = np.random.uniform(minY, maxY)
+     sampleZ = np.random.uniform(minZ, maxZ)
+
+     return np.array([sampleX, sampleY, sampleZ])
+
+def sampleCFreeSpace(boundary, blocks):
+    sampledPoint = sampleCSpace(boundary)
+    while checkCollisionPointAABB(sampledPoint, blocks):
+        sampledPoint = sampleCSpace(boundary)
+    return sampledPoint
+
+def nearestNode(point, graph): #graph is an n x 3 set of verticies, returns index of closest node
+    distanceToOtherNodes = np.linalg.norm(graph - point, axis=1)
+    indexNodeClosest = np.argmin(distanceToOtherNodes)
+    return indexNodeClosest
+
+def nearNodes(point, graph, radius): #graph is an n x 3 set of verticies, returns indexes of close nodes
+    distanceToOtherNodes = np.linalg.norm(graph - point, axis=1)
+    indexesNodesClose = np.where(distanceToOtherNodes < radius)[0]
+    return indexesNodesClose
+
