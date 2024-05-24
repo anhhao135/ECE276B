@@ -3,7 +3,6 @@ import time
 import matplotlib.pyplot as plt; plt.ion()
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-import Planner
 from lib import *
 
 import warnings
@@ -114,7 +113,7 @@ def runtest(mapfile, start, goal, verbose = True):
   return success, pathlength
 
 
-def test_single_cube(verbose = True):
+def test_single_cube_search(verbose = True):
   print('Running single cube test...\n') 
   start = np.array([2.3, 2.3, 1.3])
   goal = np.array([7.0, 7.0, 5.5])
@@ -123,8 +122,18 @@ def test_single_cube(verbose = True):
   print('Success: %r'%success)
   print('Path length: %f'%pathlength)
   print('\n')
+
+def test_single_cube_sample(verbose = True):
+  print('Running single cube test...\n') 
+  start = np.array([2.3, 2.3, 1.3])
+  goal = np.array([7.0, 7.0, 5.5])
+  pathlength, success, plotTitle = samplingBasedPlanBiDirectionalRRT(start, goal,'./maps/single_cube.txt', 10000000, 10000, 1, 1)
+  plt.title(plotTitle)
+  print('Success: %r'%success)
+  print('Path length: %f'%pathlength)
+  print('\n')
   
-def test_maze(verbose = True):
+def test_maze_search(verbose = True):
   print('Running maze test...\n') 
   start = np.array([0.0, 0.0, 1.0])
   goal = np.array([12.0, 12.0, 5.0])
@@ -134,8 +143,18 @@ def test_maze(verbose = True):
   print('Path length: %f'%pathlength)
   print('\n')
 
+def test_maze_sample(verbose = True):
+  print('Running maze test...\n') 
+  start = np.array([0.0, 0.0, 1.0])
+  goal = np.array([12.0, 12.0, 5.0])
+  pathlength, success, plotTitle = samplingBasedPlanBiDirectionalRRT(start, goal,'./maps/maze.txt', 10000000, 10000, 1, np.inf)
+  print('Success: %r'%success)
+  print('Path length: %f'%pathlength)
+  print('\n')
+
+
     
-def test_window(verbose = True):
+def test_window_search(verbose = True):
   print('Running window test...\n') 
   start = np.array([0.2, -4.9, 0.2])
   goal = np.array([6.0, 18.0, 3.0])
@@ -145,8 +164,18 @@ def test_window(verbose = True):
   print('Path length: %f'%pathlength)
   print('\n')
 
+def test_window_sample(verbose = True):
+  print('Running window test...\n') 
+  start = np.array([0.2, -4.9, 0.2])
+  goal = np.array([6.0, 18.0, 3.0])
+  pathlength, success, plotTitle = samplingBasedPlanBiDirectionalRRT(start, goal,'./maps/window.txt', 10000000, 10000, 1, 1)
+  plt.title(plotTitle)
+  print('Success: %r'%success)
+  print('Path length: %f'%pathlength)
+  print('\n')
+
   
-def test_tower(verbose = True):
+def test_tower_search(verbose = True):
   print('Running tower test...\n') 
   start = np.array([2.5, 4.0, 0.5])
   goal = np.array([4.0, 2.5, 19.5])
@@ -156,8 +185,18 @@ def test_tower(verbose = True):
   print('Path length: %f'%pathlength)
   print('\n')
 
+def test_tower_sample(verbose = True):
+  print('Running tower test...\n') 
+  start = np.array([2.5, 4.0, 0.5])
+  goal = np.array([4.0, 2.5, 19.5])
+  pathlength, success, plotTitle = samplingBasedPlanBiDirectionalRRT(start, goal,'./maps/tower.txt', 10000000, 10000, 1, 1)
+  plt.title(plotTitle)
+  print('Success: %r'%success)
+  print('Path length: %f'%pathlength)
+  print('\n')
+
      
-def test_flappy_bird(verbose = True):
+def test_flappy_bird_search(verbose = True):
   print('Running flappy bird test...\n') 
   start = np.array([0.5, 2.5, 5.5])
   goal = np.array([19.0, 2.5, 5.5])
@@ -167,8 +206,18 @@ def test_flappy_bird(verbose = True):
   print('Path length: %f'%pathlength)
   print('\n')
 
+def test_flappy_bird_sample(verbose = True):
+  print('Running flappy bird test...\n') 
+  start = np.array([0.5, 2.5, 5.5])
+  goal = np.array([19.0, 2.5, 5.5])
+  pathlength, success, plotTitle = samplingBasedPlanBiDirectionalRRT(start, goal,'./maps/flappy_bird.txt', 10000000, 10000, 1, 1)
+  plt.title(plotTitle)
+  print('Success: %r'%success)
+  print('Path length: %f'%pathlength)
+  print('\n')
+
   
-def test_room(verbose = True):
+def test_room_search(verbose = True):
   print('Running room test...\n') 
   start = np.array([1.0, 5.0, 1.5])
   goal = np.array([9.0, 7.0, 1.5])
@@ -178,8 +227,18 @@ def test_room(verbose = True):
   print('Path length: %f'%pathlength)
   print('\n')
 
+def test_room_sample(verbose = True):
+  print('Running room test...\n') 
+  start = np.array([1.0, 5.0, 1.5])
+  goal = np.array([9.0, 7.0, 1.5])
+  pathlength, success, plotTitle = samplingBasedPlanBiDirectionalRRT(start, goal,'./maps/room.txt', 10000000, 10000, 1, 1)
+  plt.title(plotTitle)
+  print('Success: %r'%success)
+  print('Path length: %f'%pathlength)
+  print('\n')
 
-def test_monza(verbose = True):
+
+def test_monza_search(verbose = True):
   print('Running monza test...\n')
   start = np.array([0.5, 1.0, 4.9])
   goal = np.array([3.8, 1.0, 0.1])
@@ -189,19 +248,32 @@ def test_monza(verbose = True):
   print('Path length: %f'%pathlength)
   print('\n')
 
+def test_monza_sample(verbose = True):
+  print('Running monza test...\n')
+  start = np.array([0.5, 1.0, 4.9])
+  goal = np.array([3.8, 1.0, 0.1])
+  pathlength, success, plotTitle = samplingBasedPlanBiDirectionalRRT(start, goal,'./maps/monza.txt', 10000000, 10000, 1, np.inf)
+  plt.title(plotTitle)
+  print('Success: %r'%success)
+  print('Path length: %f'%pathlength)
+  print('\n')
+
 
 if __name__=="__main__":
-  #test_single_cube()
-  #test_maze()
-  #test_flappy_bird()
-  #test_monza()
-  #test_window()
-  #test_tower()
-  #test_room()
-  start = np.array([1.0, 5.0, 1.5])
-  goal = np.array([9.0, 7.0, 1.5])
-  pathlength, success, plotTitle = samplingBasedPlanBiDirectionalRRT(start, goal,'./maps/room.txt', 10000000, 10000, 1, 10)
-  plt.title(plotTitle)
+  test_single_cube_search()
+  test_single_cube_sample()
+  #test_maze_search()
+  #test_maze_sample()
+  test_flappy_bird_search()
+  test_flappy_bird_sample()
+  test_monza_search()
+  #test_monza_sample()
+  test_window_search()
+  test_window_sample()
+  test_tower_search()
+  test_tower_sample()
+  test_room_search()
+  test_room_sample()
   plt.show(block=True)
 
 
