@@ -111,8 +111,6 @@ def weightedAStar(graph, START_NODE, GOAL_NODE, horizon):
                     graph[child].parent = currentNode.label
                     open[child] = graph[child].g + graph[child].h
         
-        #print("open: " + str(open))
-        #print("closed: " + str(closed))
 
         i = i + 1
 
@@ -135,6 +133,9 @@ def weightedAStar(graph, START_NODE, GOAL_NODE, horizon):
 
      
 def searchBasedPlan(start, goal, mapDirectory, GRID_UPSCALE, horizon, epsilon):
+
+    startTime = time.time()
+
     CLOSE_THRESHOLD = 2
     boundary, blocks = load_map(mapDirectory)
 
@@ -173,7 +174,7 @@ def searchBasedPlan(start, goal, mapDirectory, GRID_UPSCALE, horizon, epsilon):
     validMeshPoints = np.array(validMeshPoints)
     invalidMeshPoints = np.array(invalidMeshPoints)
 
-    #ax.scatter(validMeshPoints[:,0] / GRID_UPSCALE, validMeshPoints[:,1] / GRID_UPSCALE, validMeshPoints[:,2] / GRID_UPSCALE, s=1, c='orange')
+    ax.scatter(validMeshPoints[:,0] / GRID_UPSCALE, validMeshPoints[:,1] / GRID_UPSCALE, validMeshPoints[:,2] / GRID_UPSCALE, s=5, c='orange')
 
 
     totalMeshPoints = validMeshPoints.shape[0]
@@ -198,10 +199,12 @@ def searchBasedPlan(start, goal, mapDirectory, GRID_UPSCALE, horizon, epsilon):
                         node.childrenAndCosts.append((tuple(node.label + directionPossible.astype(np.int16)), cost))
 
 
+
+
     START_NODE = tuple(startCoordinate)
     GOAL_NODE = tuple(goalCoordinate)
 
-
+    
 
 
     if START_NODE not in graph:
@@ -236,13 +239,17 @@ def searchBasedPlan(start, goal, mapDirectory, GRID_UPSCALE, horizon, epsilon):
 
     graph[START_NODE].g = 0
 
+    graphConstructionFinishTime = time.time()
+
     shortestPath, totalCost = weightedAStar(graph, START_NODE, GOAL_NODE, horizon)
 
-    ax.plot(shortestPath[:,0] / GRID_UPSCALE,shortestPath[:,1] / GRID_UPSCALE,shortestPath[:,2] / GRID_UPSCALE,'r-')
-                    
-    #plt.show(block=True)
+    graphSearchFinishTime = time.time()
 
-    return totalCost / GRID_UPSCALE, True
+    ax.plot(shortestPath[:,0] / GRID_UPSCALE,shortestPath[:,1] / GRID_UPSCALE,shortestPath[:,2] / GRID_UPSCALE,'r-')
+
+    returnString = "Searched-based plan, weighted A*\ngrid upscale: {GRID_UPSCALE}, epsilon: {epsilon}, graph construction time: {constructionTime:.5f}, graph search time: {searchTime:.10f}, shortest path length: {pathLength:.5f}, graph size: {graphSize}".format(GRID_UPSCALE = GRID_UPSCALE, epsilon = epsilon, constructionTime = graphConstructionFinishTime - startTime, searchTime = graphSearchFinishTime - graphConstructionFinishTime, pathLength = totalCost / GRID_UPSCALE, graphSize = len(graph))
+
+    return totalCost / GRID_UPSCALE, True, returnString
 
 
 
@@ -285,9 +292,18 @@ def steerToNode(point1, point2, epsilon):
     else:
         normalizedVector = (point2 - point1) / distance
         return point1 + (epsilon * normalizedVector)
+    
+def visualizeGraph(graph, ax):
+    for node in graph.values():
+        nodePoint = np.array(node.label)
+        for (child, cost) in node.childrenAndCosts:
+            drawVector = np.array([nodePoint, np.array(child)])
+            ax.plot(drawVector[:,0],drawVector[:,1],drawVector[:,2], color='orange', alpha = 0.6)
 
 
-def samplingBasedPlan(start, goal, mapDirectory, nodesToSample, horizon, epsilon, steerEpsilon):
+def samplingBasedPlanRRT(start, goal, mapDirectory, nodesToSample, horizon, epsilon, steerEpsilon):
+
+    startTime = time.time()
 
     boundary, blocks = load_map(mapDirectory)
     fig, ax, hb, hs, hg = draw_map(boundary, blocks, start, goal)
@@ -319,7 +335,7 @@ def samplingBasedPlan(start, goal, mapDirectory, nodesToSample, horizon, epsilon
             graphDict[tuple(pointNearest)].childrenAndCosts.append((tuple(pointNew), cost))
             graphDict[tuple(pointNew)].childrenAndCosts.append((tuple(pointNearest), cost))
         if np.array_equal(pointNew, goal):
-            
+            graphConstructionFinishTime = time.time()
             shortestPath, totalCost = weightedAStar(graphDict, START_NODE, GOAL_NODE, horizon)
             if totalCost != 0:
                 break
@@ -328,14 +344,115 @@ def samplingBasedPlan(start, goal, mapDirectory, nodesToSample, horizon, epsilon
                     node.g = np.inf
                     node.parent = None
     
+
+    graphSearchFinishTime = time.time()
+
     #for node in graphDict.values():
         #node.print()
+
+    
+    visualizeGraph(graphDict, ax)
+
+    ax.plot(shortestPath[:,0],shortestPath[:,1],shortestPath[:,2],'r-')
+
+    returnString = "Sampling-based plan, bi-directional RTT-Connect, weighted A*\nepsilon: {epsilon}, RTT steer epsilon: {steerEpsilon}, graph construction time: {constructionTime:.5f}, graph search time: {searchTime:.10f}, shortest path length: {pathLength:.5f}, graph size: {graphSize}".format(epsilon = epsilon, constructionTime = graphConstructionFinishTime - startTime, searchTime = graphSearchFinishTime - graphConstructionFinishTime, pathLength = totalCost, graphSize = len(graphDict))
+
+
+    ax.view_init(azim=-90, elev=90)
+    return totalCost, True, returnString
+
+    
+
+def samplingBasedPlanBiDirectionalRRT(start, goal, mapDirectory, nodesToSample, horizon, epsilon, steerEpsilon):
+
+    startTime = time.time()
+
+    def extend(graphList, graphDict, point, steerEpsilon, blocks):
+        pointNearest = graphList[nearestNode(point, graphList)]
+        pointNew = steerToNode(pointNearest, point, steerEpsilon)
+        
+        if checkCollisionFreeEntireMap(pointNearest, pointNew, blocks):
+            if tuple(pointNew) not in graphDict:
+                graphDict[tuple(pointNew)] = Node(tuple(pointNew), np.inf, weightedAStarHeuristic(pointNew, goal, epsilon), [])
+            graphList.append(pointNew)
+            cost = np.linalg.norm(pointNearest - pointNew)
+            graphDict[tuple(pointNearest)].childrenAndCosts.append((tuple(pointNew), cost))
+            graphDict[tuple(pointNew)].childrenAndCosts.append((tuple(pointNearest), cost))
+            if np.array_equal(pointNew, point):
+                print("reached!!!")
+                return "reached", pointNew
+            else:
+                print("advanced")
+                return "advanced", pointNew
+        return "trapped", pointNew
+
+    def connect(graphList, graphDict, point, steerEpsilon, blocks):
+        status, pointNew = extend(graphList, graphDict, point, steerEpsilon, blocks)
+        while status == "advanced":
+            status, pointNew = extend(graphList, graphDict, point, steerEpsilon, blocks)
+        return status
+
+    boundary, blocks = load_map(mapDirectory)
+    fig, ax, hb, hs, hg = draw_map(boundary, blocks, start, goal)
+    boundary = boundary.flatten()
+
+    START_NODE = tuple(start)
+    GOAL_NODE = tuple(goal)
+
+    treeAList = []
+    treeBList = []
+    graphDict = {}
+
+    treeAList.append(start)
+    treeBList.append(goal)
+    graphDict[START_NODE] = Node(START_NODE, 0, weightedAStarHeuristic(start, goal, epsilon), [])
+    graphDict[GOAL_NODE] = Node(GOAL_NODE, np.inf, 0, [])
+    shortestPath = None
+    totalCost = None
+
+    adaptiveFreeSpaceShrink = 1
+
+    graphConstructionFinishTime = time.time()
+    graphSearchFinishTime = time.time()
+
+    for i in range(nodesToSample):
+
+
+        print(i)
+        pointRand = sampleCFreeSpace(boundary, blocks)
+        status, pointNew = extend(treeAList, graphDict, pointRand, steerEpsilon, blocks)
+        if status != "trapped":
+            graphDict[tuple(pointNew)].print()
+            if connect(treeBList, graphDict, pointNew, steerEpsilon, blocks) == "reached":
+                print("trees connected")
+                print("connected at " + str(pointNew))
+                print(treeAList)
+                print(treeBList)
+                graphDict[tuple(pointNew)].print()
+                graphConstructionFinishTime = time.time()
+                shortestPath, totalCost = weightedAStar(graphDict, START_NODE, GOAL_NODE, horizon)
+                graphSearchFinishTime = time.time()
+                break
+        treeAList, treeBList = treeBList, treeAList
+
+
+
+    graphSearchFinishTime = time.time()
+    print(treeAList)
+    print(treeBList)
+    ax.view_init(azim=-90, elev=90)
+    visualizeGraph(graphDict, ax)
+
+    
+    
 
 
     ax.plot(shortestPath[:,0],shortestPath[:,1],shortestPath[:,2],'r-')
 
+    returnString = "Sampling-based plan, bi-directional RRT-Connect, weighted A*\nepsilon: {epsilon}, RRT steer epsilon: {steerEpsilon}, graph construction time: {constructionTime:.5f}, graph search time: {searchTime}, shortest path length: {pathLength:.5f}, graph size: {graphSize}".format(epsilon = epsilon, steerEpsilon = steerEpsilon, constructionTime = graphConstructionFinishTime - startTime, searchTime = graphSearchFinishTime - graphConstructionFinishTime, pathLength = totalCost, graphSize = len(graphDict))
 
-    return totalCost, True
+
+    return totalCost, True, returnString
 
     
 
