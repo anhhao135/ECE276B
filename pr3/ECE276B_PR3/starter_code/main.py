@@ -38,7 +38,7 @@ def main():
         # Apply control input
         next_state = utils.car_next_state(utils.time_step, cur_state, control, noise=True)
         # Update current state
-        cur_state = next_state
+        cur_state = next_state 
         # Loop time
         t2 = utils.time()
         print(cur_iter)

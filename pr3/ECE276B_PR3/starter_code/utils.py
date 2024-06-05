@@ -37,8 +37,8 @@ def lissajous(k):
 
 # This function implements a simple P controller
 def simple_controller(cur_state, ref_state):
-    k_v = 0.55
-    k_w = 1.0
+    k_v = 0.5
+    k_w = 1
     v = k_v * np.sqrt((cur_state[0] - ref_state[0]) ** 2 + (cur_state[1] - ref_state[1]) ** 2)
     v = np.clip(v, v_min, v_max)
     angle_diff = ref_state[2] - cur_state[2]
