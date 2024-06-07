@@ -8,6 +8,7 @@ def main():
     obstacles = np.array([[-2, -2, 0.5], [1, 2, 0.5]])
     # Params
     traj = utils.lissajous
+    print(traj)
     ref_traj = []
     error_trans = 0.0
     error_rot = 0.0
@@ -24,6 +25,8 @@ def main():
         # Get reference state
         cur_time = cur_iter * utils.time_step
         cur_ref = traj(cur_iter)
+        print(cur_ref)
+        print(cur_iter)
         # Save current state and reference state for visualization
         ref_traj.append(cur_ref)
         car_states.append(cur_state)
@@ -32,7 +35,7 @@ def main():
         # Generate control input
         # TODO: Replace this simple controller with your own controller
         control = utils.simple_controller(cur_state, cur_ref)
-        print("[v,w]", control)
+        #print("[v,w]", control)
         ################################################################
 
         # Apply control input
@@ -41,15 +44,15 @@ def main():
         cur_state = next_state 
         # Loop time
         t2 = utils.time()
-        print(cur_iter)
-        print(t2 - t1)
+        #print(cur_iter)
+        #print(t2 - t1)
         times.append(t2 - t1)
         cur_err = cur_state - cur_ref
         cur_err[2] = np.arctan2(np.sin(cur_err[2]), np.cos(cur_err[2]))
         error_trans = error_trans + np.linalg.norm(cur_err[:2])
         error_rot = error_rot + np.abs(cur_err[2])
-        print(cur_err, error_trans, error_rot)
-        print("======================")
+        #print(cur_err, error_trans, error_rot)
+        #print("======================")
         cur_iter = cur_iter + 1
 
     main_loop_time = time()
