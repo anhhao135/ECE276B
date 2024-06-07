@@ -38,7 +38,7 @@ while False:
 
 
 delta_t = 1
-horizon = 2 #how many steps are looked ahead in receding horizon CEC, including the current step
+horizon = 10 #how many steps are looked ahead in receding horizon CEC, including the current step
 positionVectorSize = 2
 errorVectorSize = 3
 controlVectorSize = 2
@@ -47,50 +47,128 @@ currentIter = 0
 w= np.random.normal(0, 0.1, 3)
 currentState = traj(currentIter) + w
 
-gammaValue = 0.9
-gamma = np.zeros(horizon-1)
-for i in range(horizon-1):
-    gamma[i] = gammaValue**i
+
 
 referenceStatesAhead = []
 
-for i in range(currentIter + horizon):
+for i in range(currentIter, currentIter + horizon + 1):
     referenceStatesAhead.append(traj(i))
+
+print(referenceStatesAhead)
 
 exampleControl = np.array([0.4, 0.5])
 exampleError = getError(currentState, referenceStatesAhead[0])
-exampleErrorMotionModel = errorMotionModelNoNoise(delta_t, exampleError, exampleControl, referenceStatesAhead[0], referenceStatesAhead[1])
+exampleErrorMotionModel = errorMotionModelNoNoise(delta_t, exampleError[0:2], exampleError[2], exampleControl, referenceStatesAhead[0], referenceStatesAhead[1])
+
 
 
 # Initialize problem
-U = MX.sym('U', 2)
-E = MX.sym('E', 3)
-E_given = np.array([0.1, 0.1, 0.01])
+U = MX.sym('U', 2 * horizon)
+P = MX.sym('E', 2 * horizon + 2)
+Theta = MX.sym('theta', horizon + 1)
+E_given = np.array([0.1,0.2,0.03])
 
-variables = vertcat(U, E)
+lowerBoundv = -10
+upperBoundv = 10
+lowerBoundw = -2
+upperBoundw = 2
 
-costFunction = E[0]**2 + E[1]**2 + E[2]**2 + gamma[0] * (E_given[0]**2 + E_given[1]**2 + (1 - np.cos(E_given[2]))**2 + U[0]**2 + U[1]**2)
+lowerBoundPoseError = -5
+upperBoundPoseError = 5
 
-motionModelConstraint1 = E[0:3] - errorMotionModelNoNoise(delta_t, E_given, U[0:2], referenceStatesAhead[0], referenceStatesAhead[1])
+
+
+controlInputSolverLowerConstraint = list(np.tile(np.array([lowerBoundv, lowerBoundw]), horizon))
+controlInputSolverUpperConstraint = list(np.tile(np.array([upperBoundv, upperBoundw]), horizon))
+
+poseErrorSolverLowerConstraint = list(lowerBoundPoseError * np.ones(3 * horizon + 3))
+poseErrorSolverUpperConstraint = list(upperBoundPoseError * np.ones(3 * horizon + 3))
+
+initialConditionSolverConstraint = list(np.zeros(5 * horizon + 3))
+
+print(controlInputSolverLowerConstraint + poseErrorSolverLowerConstraint)
+
+motionModelSolverConstraint = list(np.zeros((horizon+1) * 3))
+
+
+
+print(U.shape)
+print(P.shape)
+print(Theta.shape)
+
+
+
+variables = vertcat(U, P, Theta)
+
+Q = np.eye(2)
+QBatch = np.kron(np.eye(horizon,dtype=int),Q)
+
+R = np.eye(2)
+RBatch = np.kron(np.eye(horizon,dtype=int),R)
+
+q = 1
+
+gammaValue = 0.9
+gammas = np.zeros(horizon)
+for i in range(horizon):
+    gammas[i] = gammaValue**i
+
+gammas2D = np.eye(2 * horizon)
+for i in range(horizon):
+    gammas2D[i*2:i*2+2,i*2:i*2+2] = gammas[i] * np.eye(2)
+
+
+costFunction = (P[2*(horizon-1)]**2 + P[2*(horizon-1) + 1]**2 + Theta[horizon-1]**2) + P[:2*horizon].T @ gammas2D @ QBatch @ P[:2*horizon] + U.T @ gammas2D @ RBatch @ U + np.atleast_2d(gammas) @ (1 - cos(Theta[:horizon]))**2
+
+motionModelConstraint0 = vertcat(P[0:2], Theta[0]) - E_given
+
+g = vertcat(motionModelConstraint0)
+
+for i in range(horizon):
+    motionModelConstraint = vertcat(P[(i+1)*2:(i+1)*2+2], Theta[i+1]) - errorMotionModelNoNoise(delta_t, P[i*2:i*2+2], Theta[i], U[i*2:i*2+2], referenceStatesAhead[i], referenceStatesAhead[i+1])
+    g = vertcat(g, motionModelConstraint)
+
+
+print(g.shape)
+print(variables.shape)
+
+
 
 solver_params = {
-"ubg": [0],
-"lbg" :[0],
-"lbx": [-2,-2,-5,-5,-5],
-"ubx": [2,2,5,5,5],
-"x0": [0,0,0.1,0.1,0.01]
+"ubg": motionModelSolverConstraint,
+"lbg" :motionModelSolverConstraint,
+"lbx": controlInputSolverLowerConstraint + poseErrorSolverLowerConstraint,
+"ubx": controlInputSolverUpperConstraint + poseErrorSolverUpperConstraint,
+"x0": initialConditionSolverConstraint
 }
+
 # Solve
-solver = nlpsol("solver", "ipopt", {'x':variables, 'f':costFunction, 'g':motionModelConstraint1}, {})
+solver = nlpsol("solver", "ipopt", {'x':variables, 'f':costFunction, 'g':g}, {})
+
+
 sol = solver(**solver_params)
 print("-----")
 print("objective at solution = " + str(sol["f"]))
 print("primal solution = " + str(sol["x"]))
-
-print(errorMotionModelNoNoise(delta_t, E_given, np.array([0.138, 0.00565]), referenceStatesAhead[0], referenceStatesAhead[1]))
+print()
 
 
 while False:
+
+    
+
+
+
+
+
+    print(errorMotionModelNoNoise(delta_t, E_given[0:2], E_given[2], np.array(sol["x"][0:2]).flatten(), referenceStatesAhead[0], referenceStatesAhead[1]))
+
+while False:
+
+
+
+
+
 
 
     # Initialize problem

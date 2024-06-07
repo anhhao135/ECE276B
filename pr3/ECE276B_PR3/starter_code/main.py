@@ -25,7 +25,7 @@ def main():
         # Get reference state
         cur_time = cur_iter * utils.time_step
         cur_ref = traj(cur_iter)
-        print(cur_ref)
+        #print(cur_ref)
         print(cur_iter)
         # Save current state and reference state for visualization
         ref_traj.append(cur_ref)
@@ -34,8 +34,10 @@ def main():
         ################################################################
         # Generate control input
         # TODO: Replace this simple controller with your own controller
-        control = utils.simple_controller(cur_state, cur_ref)
+        #control = utils.simple_controller(cur_state, cur_ref)
+        control = utils.NLP_controller(utils.time_step, 10, traj, cur_iter, cur_state)
         #print("[v,w]", control)
+        print("my [v,w]", control)
         ################################################################
 
         # Apply control input

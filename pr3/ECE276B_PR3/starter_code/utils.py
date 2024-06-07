@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib import animation
 from time import time
 from tqdm import tqdm
+from casadi import *
 
 x_init = 1.5
 y_init = 0.0
@@ -46,6 +47,130 @@ def simple_controller(cur_state, ref_state):
     w = k_w * angle_diff
     w = np.clip(w, w_min, w_max)
     return [v, w]
+
+def getError(currentState, referenceState):
+    return currentState - referenceState
+
+def getPosition(state):
+    return state[0:2]
+
+def getOrientation(state):
+    return state[2]
+
+def errorMotionModelNoNoise(delta_t, p_err, theta_err, u_t, currRefState, nextRefState):
+    #u_t_2d = np.atleast_2d(u_t).T
+    u_t_2d = np.array([[u_t[0]],[u_t[1]]])
+    #p_err_2d = np.atleast_2d(p_err).T
+    p_err_2d = np.array([[p_err[0]],[p_err[1]],[theta_err]])
+    G = np.array([[delta_t * np.cos(theta_err + currRefState[2]), 0], [delta_t * np.sin(theta_err + currRefState[2]), 0], [0, delta_t]])
+    refPosDiff = np.atleast_2d(np.array(currRefState[0:2]) - np.array(nextRefState[0:2])).T
+    refOriDiff = np.atleast_2d(np.array(currRefState[2] - nextRefState[2]))
+    refDiff = np.vstack((refPosDiff,refOriDiff))
+    p_err_next = (p_err_2d + G @ u_t_2d + refDiff).flatten()
+    return vertcat(p_err_next[0], p_err_next[1], p_err_next[2])
+
+
+
+
+def NLP_controller(delta_t, horizon, traj, currentIter, currentState):
+
+    obstacles = [-2, -2, 0.5]
+    obstacleCenter = np.array([[obstacles[0], obstacles[1]]]).T
+    obstacleRaidus = obstacles[2]
+
+    obstacles = [1, 2, 0.5]
+    obstacleCenter2 = np.array([[obstacles[0], obstacles[1]]]).T
+    obstacleRaidus2 = obstacles[2]
+
+    referenceStatesAhead = []
+
+    for i in range(currentIter, currentIter + horizon + 1):
+        referenceStatesAhead.append(traj(i))
+
+
+    U = MX.sym('U', 2 * horizon)
+    P = MX.sym('E', 2 * horizon + 2)
+    Theta = MX.sym('theta', horizon + 1)
+    E_given = getError(currentState, referenceStatesAhead[0])
+
+    lowerBoundv = 0
+    upperBoundv = 10
+    lowerBoundw = -0.5
+    upperBoundw = 0.5
+
+    lowerBoundPoseError = -2
+    upperBoundPoseError = 2
+
+    controlInputSolverLowerConstraint = list(np.tile(np.array([lowerBoundv, lowerBoundw]), horizon))
+    controlInputSolverUpperConstraint = list(np.tile(np.array([upperBoundv, upperBoundw]), horizon))
+
+    poseErrorSolverLowerConstraint = list(lowerBoundPoseError * np.ones(3 * horizon + 3))
+    poseErrorSolverUpperConstraint = list(upperBoundPoseError * np.ones(3 * horizon + 3))
+
+    initialConditionSolverConstraint = list(np.zeros(5 * horizon + 3))
+
+    motionModelSolverConstraint = list(np.zeros((horizon+1) * 3))
+
+
+    upperBoundObstacleAvoider = 100
+
+    obstacleSolverLowerConstraint = list(np.zeros(2 * horizon))
+    obstacleSolverUpperConstraint = list(upperBoundObstacleAvoider * np.ones(2 * horizon))
+
+
+    variables = vertcat(U, P, Theta)
+
+    Q = 1 * np.eye(2)
+    QBatch = np.kron(np.eye(horizon,dtype=int),Q)
+
+    R = 1 * np.eye(2)
+    RBatch = np.kron(np.eye(horizon,dtype=int),R)
+
+    q = 1
+
+    gammaValue = 0.95
+    gammas = np.zeros(horizon)
+    for i in range(horizon):
+        gammas[i] = gammaValue**i
+
+    gammas2D = np.eye(2 * horizon)
+    for i in range(horizon):
+        gammas2D[i*2:i*2+2,i*2:i*2+2] = gammas[i] * np.eye(2)
+
+
+    costFunction = (P[2*(horizon-1)]**2 + P[2*(horizon-1) + 1]**2 + Theta[horizon-1]**2) + P[:2*horizon].T @ gammas2D @ QBatch @ P[:2*horizon] + U.T @ gammas2D @ RBatch @ U + q * np.atleast_2d(gammas) @ (1 - cos(Theta[:horizon]))**2
+
+    motionModelConstraint0 = vertcat(P[0:2], Theta[0]) - E_given
+
+    g = vertcat(motionModelConstraint0)
+
+    for i in range(horizon):
+        motionModelConstraint = vertcat(P[(i+1)*2:(i+1)*2+2], Theta[i+1]) - errorMotionModelNoNoise(delta_t, P[i*2:i*2+2], Theta[i], U[i*2:i*2+2], referenceStatesAhead[i], referenceStatesAhead[i+1])
+        g = vertcat(g, motionModelConstraint)
+
+    for i in range(horizon):
+        d = P[(i+1)*2:(i+1)*2+2] + referenceStatesAhead[i+1][0:2] - obstacleCenter
+        g = vertcat(g, d.T @ d - (obstacleRaidus+0.1)**2) 
+    
+    for i in range(horizon):
+        d = P[(i+1)*2:(i+1)*2+2] + referenceStatesAhead[i+1][0:2] - obstacleCenter2
+        g = vertcat(g, d.T @ d - (obstacleRaidus2+0.1)**2) 
+
+    solver_params = {
+    "ubg": motionModelSolverConstraint + obstacleSolverUpperConstraint,
+    "lbg" :motionModelSolverConstraint + obstacleSolverLowerConstraint,
+    "lbx": controlInputSolverLowerConstraint + poseErrorSolverLowerConstraint,
+    "ubx": controlInputSolverUpperConstraint + poseErrorSolverUpperConstraint,
+    "x0": initialConditionSolverConstraint
+    }
+
+    opts = {'ipopt.print_level':0, 'print_time':0}
+    solver = nlpsol("solver", "ipopt", {'x':variables, 'f':costFunction, 'g':g}, opts)
+
+
+    sol = solver(**solver_params)
+    return [float(sol["x"][0]), float(sol["x"][1])]
+
 
 
 # This function implement the car dynamics
