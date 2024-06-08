@@ -72,17 +72,13 @@ def errorMotionModelNoNoise(delta_t, p_err, theta_err, u_t, currRefState, nextRe
 
 
 
-def NLP_controller(delta_t, horizon, traj, currentIter, currentState):
+def NLP_controller(delta_t, horizon, traj, currentIter, currentState, freeSpaceBounds, obstacle1, obstacle2):
 
-    freeSpaceBounds = [-3, -3, 3, 3] #low x, low y, high x, high y
+    obstacleCenter = np.array([[obstacle1[0], obstacle1[1]]]).T
+    obstacleRadius = obstacle1[2]
 
-    obstacles = [-2, -2, 0.5]
-    obstacleCenter = np.array([[obstacles[0], obstacles[1]]]).T
-    obstacleRaidus = obstacles[2]
-
-    obstacles = [1, 2, 0.5]
-    obstacleCenter2 = np.array([[obstacles[0], obstacles[1]]]).T
-    obstacleRaidus2 = obstacles[2]
+    obstacleCenter2 = np.array([[obstacle2[0], obstacle2[1]]]).T
+    obstacleRadius2 = obstacle2[2]
 
     referenceStatesAhead = []
 
@@ -161,11 +157,11 @@ def NLP_controller(delta_t, horizon, traj, currentIter, currentState):
 
     for i in range(horizon): #obstacle 1
         d = P[(i+1)*2:(i+1)*2+2] + referenceStatesAhead[i+1][0:2] - obstacleCenter
-        g = vertcat(g, d.T @ d - (obstacleRaidus+0.2)**2) 
+        g = vertcat(g, d.T @ d - (obstacleRadius+0.2)**2) 
     
     for i in range(horizon): #obstacle 2
         d = P[(i+1)*2:(i+1)*2+2] + referenceStatesAhead[i+1][0:2] - obstacleCenter2
-        g = vertcat(g, d.T @ d - (obstacleRaidus2+0.2)**2) 
+        g = vertcat(g, d.T @ d - (obstacleRadius2+0.2)**2) 
 
     for i in range(horizon): #map bounds
         d = P[(i+1)*2:(i+1)*2+2] + referenceStatesAhead[i+1][0:2]

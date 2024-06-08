@@ -35,7 +35,7 @@ def main():
         # Generate control input
         # TODO: Replace this simple controller with your own controller
         #control = utils.simple_controller(cur_state, cur_ref)
-        control = utils.NLP_controller(utils.time_step, 7, traj, cur_iter, cur_state)
+        control = utils.NLP_controller(utils.time_step, 4, traj, cur_iter, cur_state, [-3,-3,3,3], obstacles[0], obstacles[1])
         #print("[v,w]", control)
         print("my [v,w]", control)
         ################################################################
