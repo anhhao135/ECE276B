@@ -4,10 +4,12 @@ import utils
 import matplotlib.pyplot as plt
 
 
-#theta error range pi to -pi
+#construction of discrete state space
+
+positionErrorBoundMagnitude = 3
 
 sparseThetaErrorBounds = [-np.pi, np.pi]
-sparsePositionErrorBounds = [-3, 3]
+sparsePositionErrorBounds = [-positionErrorBoundMagnitude, positionErrorBoundMagnitude]
 
 sparseDiscretizationCount = 10 # number of grid points in one axis
 
@@ -58,10 +60,63 @@ for i in range(sparseDiscretizationCount):
                 #ax.scatter(x, y, z, marker='o', color='red')
 
 
-
-
 print(len(discreteStateSpace))
+#plt.show()
 
+
+
+
+#construction of discrete control space
+controlVBoundMagnitude = 10
+controlWBoundMagnitude = 2 
+
+sparseControlVBounds = [-controlVBoundMagnitude, controlVBoundMagnitude]
+sparseControlWBounds = [-controlWBoundMagnitude, controlWBoundMagnitude]
+
+sparseControlDiscretizationCount = 7 # number of grid points in one axis
+
+sparseControlV = np.linspace(sparseControlVBounds[0], sparseControlVBounds[1], sparseControlDiscretizationCount)
+sparseControlW = np.linspace(sparseControlWBounds[0], sparseControlWBounds[1], sparseControlDiscretizationCount)
+sparseControlVGrid, sparseControlWGrid = np.meshgrid(sparseControlV, sparseControlW, indexing='ij')
+
+
+densesControlVShrinkFactor = 0.3
+denseControlWShrinkFactor = 0.3
+
+denseControlVBounds = [densesControlVShrinkFactor * sparseControlVBounds[0], densesControlVShrinkFactor * sparseControlVBounds[1]]
+denseControlWBounds = [denseControlWShrinkFactor * sparseControlWBounds[0], denseControlWShrinkFactor * sparseControlWBounds[1]]
+
+denseControlDiscretizationCount = sparseControlDiscretizationCount
+
+denseControlV = np.linspace(denseControlVBounds[0], denseControlVBounds[1], denseControlDiscretizationCount)
+denseControlW = np.linspace(denseControlWBounds[0], denseControlWBounds[1], denseControlDiscretizationCount)
+denseControlVGrid, denseControlWGrid = np.meshgrid(denseControlV, denseControlW, indexing='ij')
+
+
+discreteControlSpace = []
+
+fig = plt.figure()
+ax = fig.add_subplot()
+
+for i in range(denseControlDiscretizationCount):
+    for j in range(denseControlDiscretizationCount):
+        x = denseControlVGrid[i,j]
+        y = denseControlWGrid[i,j]
+        discreteControlSpace.append([x,y])
+        ax.scatter(x, y, marker='o', color='green')
+
+for i in range(sparseControlDiscretizationCount):
+    for j in range(sparseControlDiscretizationCount):
+        x = sparseControlVGrid[i,j]
+        y = sparseControlWGrid[i,j]
+        if not (x > denseControlVBounds[0] and x < denseControlVBounds[1] and y > denseControlWBounds[0] and y < denseControlWBounds[1]):
+            discreteControlSpace.append([x,y])
+            ax.scatter(x, y, marker='o', color='red')
+
+
+print(len(discreteControlSpace))
 plt.show()
+
+
 
 
