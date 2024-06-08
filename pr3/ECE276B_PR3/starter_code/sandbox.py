@@ -6,6 +6,9 @@ import matplotlib.pyplot as plt
 
 #construction of discrete state space
 
+
+timeStepsCount = 100
+
 positionErrorBoundMagnitude = 3
 
 sparseThetaErrorBounds = [-np.pi, np.pi]
@@ -43,28 +46,27 @@ discreteStateSpace = []
 for i in range(denseDiscretizationCount):
     for j in range(denseDiscretizationCount):
         for k in range(denseDiscretizationCount):
-            x = denseXErrorGrid[i,j,k]
-            y = denseYErrorGrid[i,j,k]
-            z = denseZErrorGrid[i,j,k]
-            discreteStateSpace.append([x,y,z])
-            #ax.scatter(x, y, z, marker='o', color='green')
+            for t in range(timeStepsCount):
+                x = denseXErrorGrid[i,j,k]
+                y = denseYErrorGrid[i,j,k]
+                z = denseZErrorGrid[i,j,k]
+                discreteStateSpace.append([x,y,z,t])
+                #ax.scatter(x, y, z, marker='o', color='green')
 
 for i in range(sparseDiscretizationCount):
     for j in range(sparseDiscretizationCount):
         for k in range(sparseDiscretizationCount):
-            x = sparseXErrorGrid[i,j,k]
-            y = sparseYErrorGrid[i,j,k]
-            z = sparseZErrorGrid[i,j,k]
-            if not (x > densePositionErrorBounds[0] and x < densePositionErrorBounds[1] and y > densePositionErrorBounds[0] and y < densePositionErrorBounds[1] and z > denseThetaErrorBounds[0] and z < denseThetaErrorBounds[1]):
-                discreteStateSpace.append([x,y,z])
-                #ax.scatter(x, y, z, marker='o', color='red')
+            for t in range(timeStepsCount):
+                x = sparseXErrorGrid[i,j,k]
+                y = sparseYErrorGrid[i,j,k]
+                z = sparseZErrorGrid[i,j,k]
+                if not (x > densePositionErrorBounds[0] and x < densePositionErrorBounds[1] and y > densePositionErrorBounds[0] and y < densePositionErrorBounds[1] and z > denseThetaErrorBounds[0] and z < denseThetaErrorBounds[1]):
+                    discreteStateSpace.append([x,y,z,t])
+                    #ax.scatter(x, y, z, marker='o', color='red')
 
 
 print(len(discreteStateSpace))
 #plt.show()
-
-
-
 
 #construction of discrete control space
 controlVBoundMagnitude = 10
