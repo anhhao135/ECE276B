@@ -95,20 +95,25 @@ def NLP_controller(delta_t, horizon, traj, currentIter, currentState):
 
     lowerBoundv = 0
     upperBoundv = 10
-    lowerBoundw = -0.5
-    upperBoundw = 0.5
+    lowerBoundw = -10
+    upperBoundw = 10
 
-    lowerBoundPoseError = -2
-    upperBoundPoseError = 2
+    lowerBoundPositionError = -2
+    upperBoundPositionError = 2
+
+    lowerBoundOrientationError = -0.3
+    upperBoundOrientationError = 0.3
 
     controlInputSolverLowerConstraint = list(np.tile(np.array([lowerBoundv, lowerBoundw]), horizon))
     controlInputSolverUpperConstraint = list(np.tile(np.array([upperBoundv, upperBoundw]), horizon))
 
-    poseErrorSolverLowerConstraint = list(lowerBoundPoseError * np.ones(3 * horizon + 3))
-    poseErrorSolverUpperConstraint = list(upperBoundPoseError * np.ones(3 * horizon + 3))
+    positionErrorSolverLowerConstraint = list(lowerBoundPositionError * np.ones(2 * horizon + 2))
+    positionErrorSolverUpperConstraint = list(upperBoundPositionError * np.ones(2 * horizon + 2))
+
+    orientationErrorSolverLowerConstraint = list(lowerBoundOrientationError * np.ones(horizon + 1))
+    orientationErrorSolverUpperConstraint = list(upperBoundOrientationError * np.ones(horizon + 1))
 
     initialConditionSolverConstraint = list(np.zeros(5 * horizon + 3))
-
     motionModelSolverConstraint = list(np.zeros((horizon+1) * 3))
 
 
@@ -159,8 +164,8 @@ def NLP_controller(delta_t, horizon, traj, currentIter, currentState):
     solver_params = {
     "ubg": motionModelSolverConstraint + obstacleSolverUpperConstraint,
     "lbg" :motionModelSolverConstraint + obstacleSolverLowerConstraint,
-    "lbx": controlInputSolverLowerConstraint + poseErrorSolverLowerConstraint,
-    "ubx": controlInputSolverUpperConstraint + poseErrorSolverUpperConstraint,
+    "lbx": controlInputSolverLowerConstraint + positionErrorSolverLowerConstraint + orientationErrorSolverLowerConstraint,
+    "ubx": controlInputSolverUpperConstraint + positionErrorSolverUpperConstraint + orientationErrorSolverUpperConstraint,
     "x0": initialConditionSolverConstraint
     }
 
