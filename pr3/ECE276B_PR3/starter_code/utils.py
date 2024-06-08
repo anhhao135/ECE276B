@@ -74,6 +74,8 @@ def errorMotionModelNoNoise(delta_t, p_err, theta_err, u_t, currRefState, nextRe
 
 def NLP_controller(delta_t, horizon, traj, currentIter, currentState):
 
+    freeSpaceBounds = [-3, -3, 3, 3] #low x, low y, high x, high y
+
     obstacles = [-2, -2, 0.5]
     obstacleCenter = np.array([[obstacles[0], obstacles[1]]]).T
     obstacleRaidus = obstacles[2]
@@ -98,8 +100,8 @@ def NLP_controller(delta_t, horizon, traj, currentIter, currentState):
     lowerBoundw = -10
     upperBoundw = 10
 
-    lowerBoundPositionError = -2
-    upperBoundPositionError = 2
+    lowerBoundPositionError = -5
+    upperBoundPositionError = 5
 
     lowerBoundOrientationError = -0.3
     upperBoundOrientationError = 0.3
@@ -123,12 +125,16 @@ def NLP_controller(delta_t, horizon, traj, currentIter, currentState):
     obstacleSolverUpperConstraint = list(upperBoundObstacleAvoider * np.ones(2 * horizon))
 
 
+    mapBoundSolverLowerConstraint = list(np.tile(np.array([freeSpaceBounds[0], freeSpaceBounds[1]]), horizon))
+    mapBoundSolverUpperConstraint = list(np.tile(np.array([freeSpaceBounds[2], freeSpaceBounds[3]]), horizon))
+
+
     variables = vertcat(U, P, Theta)
 
-    Q = 1 * np.eye(2)
+    Q = 4 * np.eye(2)
     QBatch = np.kron(np.eye(horizon,dtype=int),Q)
 
-    R = 1 * np.eye(2)
+    R = 2 * np.eye(2)
     RBatch = np.kron(np.eye(horizon,dtype=int),R)
 
     q = 1
@@ -153,17 +159,21 @@ def NLP_controller(delta_t, horizon, traj, currentIter, currentState):
         motionModelConstraint = vertcat(P[(i+1)*2:(i+1)*2+2], Theta[i+1]) - errorMotionModelNoNoise(delta_t, P[i*2:i*2+2], Theta[i], U[i*2:i*2+2], referenceStatesAhead[i], referenceStatesAhead[i+1])
         g = vertcat(g, motionModelConstraint)
 
-    for i in range(horizon):
+    for i in range(horizon): #obstacle 1
         d = P[(i+1)*2:(i+1)*2+2] + referenceStatesAhead[i+1][0:2] - obstacleCenter
-        g = vertcat(g, d.T @ d - (obstacleRaidus+0.1)**2) 
+        g = vertcat(g, d.T @ d - (obstacleRaidus+0.2)**2) 
     
-    for i in range(horizon):
+    for i in range(horizon): #obstacle 2
         d = P[(i+1)*2:(i+1)*2+2] + referenceStatesAhead[i+1][0:2] - obstacleCenter2
-        g = vertcat(g, d.T @ d - (obstacleRaidus2+0.1)**2) 
+        g = vertcat(g, d.T @ d - (obstacleRaidus2+0.2)**2) 
+
+    for i in range(horizon): #map bounds
+        d = P[(i+1)*2:(i+1)*2+2] + referenceStatesAhead[i+1][0:2]
+        g = vertcat(g, d)
 
     solver_params = {
-    "ubg": motionModelSolverConstraint + obstacleSolverUpperConstraint,
-    "lbg" :motionModelSolverConstraint + obstacleSolverLowerConstraint,
+    "ubg": motionModelSolverConstraint + obstacleSolverUpperConstraint + mapBoundSolverUpperConstraint,
+    "lbg" :motionModelSolverConstraint + obstacleSolverLowerConstraint + mapBoundSolverLowerConstraint,
     "lbx": controlInputSolverLowerConstraint + positionErrorSolverLowerConstraint + orientationErrorSolverLowerConstraint,
     "ubx": controlInputSolverUpperConstraint + positionErrorSolverUpperConstraint + orientationErrorSolverUpperConstraint,
     "x0": initialConditionSolverConstraint
