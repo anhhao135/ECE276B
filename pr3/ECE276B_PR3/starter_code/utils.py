@@ -35,6 +35,19 @@ def lissajous(k):
     thetaref = np.arctan2(v[1], v[0])
     return [xref, yref, thetaref]
 
+def circle(k):
+    a = 2 * np.pi / (T * time_step)
+    delta = np.pi / 2
+    radius = 1.5
+    xref_start = 0
+    yref_start = 0
+    k = k % T
+    xref = xref_start + radius * np.cos(a * k * time_step + delta)
+    yref = yref_start + radius * np.sin(a * k * time_step + delta)
+    thetaref = np.arctan2(yref, xref) + np.pi/2
+    return [xref, yref, thetaref]
+
+
 
 # This function implements a simple P controller
 def simple_controller(cur_state, ref_state):
@@ -72,7 +85,7 @@ def errorMotionModelNoNoise(delta_t, p_err, theta_err, u_t, currRefState, nextRe
 
 
 
-def NLP_controller(delta_t, horizon, traj, currentIter, currentState, freeSpaceBounds, obstacle1, obstacle2):
+def NLP_controller(delta_t, horizon, traj, currentIter, currentState, freeSpaceBounds, obstacle1, obstacle2, obstaclePadding):
 
     obstacleCenter = np.array([[obstacle1[0], obstacle1[1]]]).T
     obstacleRadius = obstacle1[2]
@@ -157,11 +170,11 @@ def NLP_controller(delta_t, horizon, traj, currentIter, currentState, freeSpaceB
 
     for i in range(horizon): #obstacle 1
         d = P[(i+1)*2:(i+1)*2+2] + referenceStatesAhead[i+1][0:2] - obstacleCenter
-        g = vertcat(g, d.T @ d - (obstacleRadius+0.2)**2) 
+        g = vertcat(g, d.T @ d - (obstacleRadius+obstaclePadding)**2) 
     
     for i in range(horizon): #obstacle 2
         d = P[(i+1)*2:(i+1)*2+2] + referenceStatesAhead[i+1][0:2] - obstacleCenter2
-        g = vertcat(g, d.T @ d - (obstacleRadius2+0.2)**2) 
+        g = vertcat(g, d.T @ d - (obstacleRadius2+obstaclePadding)**2) 
 
     for i in range(horizon): #map bounds
         d = P[(i+1)*2:(i+1)*2+2] + referenceStatesAhead[i+1][0:2]
