@@ -32,19 +32,18 @@ QBatch = scipy.sparse.kron(scipy.sparse.eye(stateSpaceSize),Q)
 P_err_diag = scipy.sparse.diags(P_err[0], 0)
 L_P_err = P_err @ QBatch @ P_err_diag
 L_P_err = L_P_err.reshape((-1, 2))
-L_P_err = np.sum(L_P_err, axis=1)
+L_P_err = np.atleast_2d(np.sum(L_P_err, axis=1)).T
 
-L_Theta_err = q * np.square(np.ones(stateSpaceSize) - np.cos(Theta_err))
+L_Theta_err = np.atleast_2d(q * np.square(np.ones(stateSpaceSize) - np.cos(Theta_err))).T
 
 RBatch = scipy.sparse.kron(scipy.sparse.eye(controlSpaceSize),R)
 U_diag = scipy.sparse.diags(U[0], 0)
 L_U = U @ RBatch @ U_diag
 L_U = L_U.reshape((-1, 2))
-L_U = np.sum(L_U, axis=1)
+L_U = np.atleast_2d(np.sum(L_U, axis=1)).T
 
-print(L_U.shape)
-print(discreteControlSpace[100])
-print(L_U[100])
+
+L = np.tile(L_P_err, controlSpaceSize) + np.tile(L_Theta_err, controlSpaceSize) + np.tile(L_U, stateSpaceSize).T
 
 
 
