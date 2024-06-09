@@ -9,6 +9,8 @@ from tqdm import tqdm
 import ray
 
 
+print("here")
+
 #construction of discrete state space
 discreteStateSpace = np.array(constructDiscreteStateSpace())
 discreteControlSpace = np.array(constructDiscreteControlSpace())
@@ -47,11 +49,7 @@ L_U = U @ RBatch @ U_diag
 L_U = L_U.reshape((-1, 2))
 L_U = np.atleast_2d(np.sum(L_U, axis=1)).T
 
-
 L = np.tile(L_P_err, controlSpaceSize) + np.tile(L_Theta_err, controlSpaceSize) + np.tile(L_U, stateSpaceSize).T
-
-
-
 
 mu = np.zeros(3)
 print(multivariate_normal.pdf(np.array([0.2,0.2,0.01]), mu, utils.sigma))
@@ -63,60 +61,37 @@ referenceStatesAhead = []
 for i in range(0, 101):
     referenceStatesAhead.append(traj(i))
 
-
-#matchState = np.array([0.01,0.02,0.03,10])
-#indexes = getNeighboringStates(matchState, discreteStateSpace, 8)
-#print(discreteStateSpace[indexes])
-
-@ray.remote
-def f(i):
-    nextStates = []
-    for j in range(controlSpaceSize):
-        currentState = discreteStateSpace[i]
-        currentTime = int(currentState[3])
-        currentControl = discreteControlSpace[j]
-        nextState = errorMotionModelNoNoise(utils.time_step, currentState[0:2], currentState[2], currentControl, referenceStatesAhead[currentTime], referenceStatesAhead[currentTime+1])    
-        nextStates.append(nextState)
-    return nextStates
-
-def g(i):
-    nextStates = []
-    for j in range(controlSpaceSize):
-        currentState = discreteStateSpace[i]
-        currentTime = int(currentState[3])
-        currentControl = discreteControlSpace[j]
-        nextState = errorMotionModelNoNoise(utils.time_step, currentState[0:2], currentState[2], currentControl, referenceStatesAhead[currentTime], referenceStatesAhead[currentTime+1])    
-        nextStates.append(nextState)
-    return nextStates
-
-
-
-
-
-
 startTime = time()
 
-results = []
+numberOfNeighbors = 7
 
 for i in range(stateSpaceSize):
-    results.append(f.remote(i))
+    for j in range(controlSpaceSize):
+        print("--------------")
+        currentState = discreteStateSpace[i]
+        currentTime = int(currentState[3])
+        nextTime = (currentTime + 1) % 100
+        currentControl = discreteControlSpace[j]
+        nextStateContinuous = errorMotionModelNoNoise(utils.time_step, currentState[0:2], currentState[2], currentControl, referenceStatesAhead[currentTime], referenceStatesAhead[currentTime+1])
+        nextStatesIndexesDiscrete = continuousToDiscreteStateAndNeighbors(np.vstack((nextStateContinuous, nextTime)).T, discreteStateSpace, numberOfNeighbors)  
+        print("next state continuous", np.vstack((nextStateContinuous, nextTime)).T)
+        print("next states discrete", discreteStateSpace[nextStatesIndexesDiscrete])
+        print("--------------")
+        
 
-ray.get(results)
-
-rayFinishTime = time()
-
-for i in range(stateSpaceSize):
-    print(i)
-    g(i)
-
-nativeFinishTime = time()
 
 
-print("ray time", rayFinishTime - startTime)
-print("native time", nativeFinishTime - rayFinishTime)
+while False:
+    for i in range(1000):
+        matchState = np.array([0.01,0.02,0.03,10])
+        indexes = getNeighboringStates(matchState, discreteStateSpace, 4)
+        print(i)
 
-#P = scipy.sparse.zeros((stateSpaceSize,controlSpaceSize,stateSpaceSize)) #initialize motion model matrix: P[state t,control input, state t+1] = probability of occurence
-Q = scipy.sparse.csr_matrix(L)
+
+while False:
+
+    nextStates = []
+    
 
 
 

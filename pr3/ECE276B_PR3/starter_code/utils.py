@@ -6,7 +6,7 @@ from time import time
 from tqdm import tqdm
 from casadi import *
 
-x_init = 1.5
+x_init = 2
 y_init = 0.0
 theta_init = np.pi / 2
 v_max = 1

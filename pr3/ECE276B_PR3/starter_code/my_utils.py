@@ -55,6 +55,8 @@ def NLP_controller(delta_t, horizon, traj, currentIter, currentState, freeSpaceB
     for i in range(currentIter, currentIter + horizon + 1):
         referenceStatesAhead.append(traj(i))
 
+    referenceStatesAhead = np.array(referenceStatesAhead)
+    referenceStatesAheadThetas = referenceStatesAhead[:,2]
 
     U = MX.sym('U', 2 * horizon)
     P = MX.sym('E', 2 * horizon + 2)
