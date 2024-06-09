@@ -31,9 +31,7 @@ def getOrientation(state):
     return state[2]
 
 def errorMotionModelNoNoise(delta_t, p_err, theta_err, u_t, currRefState, nextRefState):
-    #u_t_2d = np.atleast_2d(u_t).T
     u_t_2d = np.array([[u_t[0]],[u_t[1]]])
-    #p_err_2d = np.atleast_2d(p_err).T
     p_err_2d = np.array([[p_err[0]],[p_err[1]],[theta_err]])
     G = np.array([[delta_t * np.cos(theta_err + currRefState[2]), 0], [delta_t * np.sin(theta_err + currRefState[2]), 0], [0, delta_t]])
     refPosDiff = np.atleast_2d(np.array(currRefState[0:2]) - np.array(nextRefState[0:2])).T
@@ -41,6 +39,7 @@ def errorMotionModelNoNoise(delta_t, p_err, theta_err, u_t, currRefState, nextRe
     refDiff = np.vstack((refPosDiff,refOriDiff))
     p_err_next = (p_err_2d + G @ u_t_2d + refDiff).flatten()
     return vertcat(p_err_next[0], p_err_next[1], p_err_next[2])
+
 
 
 def NLP_controller(delta_t, horizon, traj, currentIter, currentState, freeSpaceBounds, obstacle1, obstacle2, obstaclePadding):
@@ -155,7 +154,7 @@ def NLP_controller(delta_t, horizon, traj, currentIter, currentState, freeSpaceB
 
 
 
-def constructDiscreteStateSpace(timeStepsCount = 100, positionErrorBoundMagnitude = 3, thetaErrorBoundMagnitude = np.pi, sparseDiscretizationCount = 11, densePositionErrorShrinkFactor = 0.4, denseThetaErrorShrinkFactor = 0.4):
+def constructDiscreteStateSpace(timeStepsCount = 100, positionErrorBoundMagnitude = 3, thetaErrorBoundMagnitude = np.pi, sparseDiscretizationCount = 7, densePositionErrorShrinkFactor = 0.3, denseThetaErrorShrinkFactor = 0.3):
     #construction of discrete state space
 
     sparseThetaErrorBounds = [-thetaErrorBoundMagnitude, thetaErrorBoundMagnitude]
@@ -201,7 +200,7 @@ def constructDiscreteStateSpace(timeStepsCount = 100, positionErrorBoundMagnitud
 
     return discreteStateSpace
 
-def constructDiscreteControlSpace(controlVBoundMagnitude = 10, controlWBoundMagnitude = 2, sparseControlDiscretizationCount = 11, densesControlVShrinkFactor = 0.4, denseControlWShrinkFactor = 0.4):
+def constructDiscreteControlSpace(controlVBoundMagnitude = 10, controlWBoundMagnitude = 2, sparseControlDiscretizationCount = 7, densesControlVShrinkFactor = 0.3, denseControlWShrinkFactor = 0.3):
 
     #construction of discrete control space
     sparseControlVBounds = [-controlVBoundMagnitude, controlVBoundMagnitude]

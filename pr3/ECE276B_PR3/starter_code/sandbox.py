@@ -5,16 +5,13 @@ import matplotlib.pyplot as plt
 from my_utils import *
 import scipy.sparse
 from scipy.stats import multivariate_normal
+from tqdm import tqdm
+import ray
 
 
 #construction of discrete state space
 discreteStateSpace = np.array(constructDiscreteStateSpace())
 discreteControlSpace = np.array(constructDiscreteControlSpace())
-
-
-matchState = np.array([0.01,0.02,0.03,10])
-indexes = getNeighboringStates(matchState, discreteStateSpace, 8)
-print(discreteStateSpace[indexes])
 
 
 stateSpaceSize = discreteStateSpace.shape[0]
@@ -63,8 +60,60 @@ traj = utils.lissajous
 
 referenceStatesAhead = []
 
-for i in range(0, 100):
+for i in range(0, 101):
     referenceStatesAhead.append(traj(i))
+
+
+#matchState = np.array([0.01,0.02,0.03,10])
+#indexes = getNeighboringStates(matchState, discreteStateSpace, 8)
+#print(discreteStateSpace[indexes])
+
+@ray.remote
+def f(i):
+    nextStates = []
+    for j in range(controlSpaceSize):
+        currentState = discreteStateSpace[i]
+        currentTime = int(currentState[3])
+        currentControl = discreteControlSpace[j]
+        nextState = errorMotionModelNoNoise(utils.time_step, currentState[0:2], currentState[2], currentControl, referenceStatesAhead[currentTime], referenceStatesAhead[currentTime+1])    
+        nextStates.append(nextState)
+    return nextStates
+
+def g(i):
+    nextStates = []
+    for j in range(controlSpaceSize):
+        currentState = discreteStateSpace[i]
+        currentTime = int(currentState[3])
+        currentControl = discreteControlSpace[j]
+        nextState = errorMotionModelNoNoise(utils.time_step, currentState[0:2], currentState[2], currentControl, referenceStatesAhead[currentTime], referenceStatesAhead[currentTime+1])    
+        nextStates.append(nextState)
+    return nextStates
+
+
+
+
+
+
+startTime = time()
+
+results = []
+
+for i in range(stateSpaceSize):
+    results.append(f.remote(i))
+
+ray.get(results)
+
+rayFinishTime = time()
+
+for i in range(stateSpaceSize):
+    print(i)
+    g(i)
+
+nativeFinishTime = time()
+
+
+print("ray time", rayFinishTime - startTime)
+print("native time", nativeFinishTime - rayFinishTime)
 
 #P = scipy.sparse.zeros((stateSpaceSize,controlSpaceSize,stateSpaceSize)) #initialize motion model matrix: P[state t,control input, state t+1] = probability of occurence
 Q = scipy.sparse.csr_matrix(L)
