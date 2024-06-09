@@ -4,17 +4,25 @@ import utils
 import matplotlib.pyplot as plt
 from my_utils import *
 import scipy.sparse
+from scipy.stats import multivariate_normal
 
 
 #construction of discrete state space
 discreteStateSpace = np.array(constructDiscreteStateSpace())
 discreteControlSpace = np.array(constructDiscreteControlSpace())
 
+
+matchState = np.array([0.01,0.02,0.03,10])
+indexes = getNeighboringStates(matchState, discreteStateSpace, 8)
+print(discreteStateSpace[indexes])
+
+
 stateSpaceSize = discreteStateSpace.shape[0]
 controlSpaceSize = discreteControlSpace.shape[0]
 
 print("state space size:", stateSpaceSize)
 print("control space size:", controlSpaceSize)
+print("state space shape:", discreteStateSpace.shape)
 
 L = np.zeros((stateSpaceSize,controlSpaceSize))
 Q = 2 * scipy.sparse.eye(2)
@@ -44,6 +52,22 @@ L_U = np.atleast_2d(np.sum(L_U, axis=1)).T
 
 
 L = np.tile(L_P_err, controlSpaceSize) + np.tile(L_Theta_err, controlSpaceSize) + np.tile(L_U, stateSpaceSize).T
+
+
+
+
+mu = np.zeros(3)
+print(multivariate_normal.pdf(np.array([0.2,0.2,0.01]), mu, utils.sigma))
+
+traj = utils.lissajous
+
+referenceStatesAhead = []
+
+for i in range(0, 100):
+    referenceStatesAhead.append(traj(i))
+
+#P = scipy.sparse.zeros((stateSpaceSize,controlSpaceSize,stateSpaceSize)) #initialize motion model matrix: P[state t,control input, state t+1] = probability of occurence
+Q = scipy.sparse.csr_matrix(L)
 
 
 

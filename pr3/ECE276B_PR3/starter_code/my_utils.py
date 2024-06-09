@@ -245,5 +245,9 @@ def continuousToDiscreteState(continuousState, discreteStates):
     distances = np.linalg.norm(distances, axis=1)
     return np.argmin(distances)
 
-
+def getNeighboringStates(state, discreteStates, neighborCount):
+    distances = state - discreteStates
+    distances = np.linalg.norm(distances, axis=1)
+    smallestDistances = distances.argsort()[:neighborCount]
+    return smallestDistances
 
