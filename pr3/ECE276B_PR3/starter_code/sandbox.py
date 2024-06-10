@@ -38,8 +38,8 @@ print("control space size:", controlSpaceSize)
 print("per time state space shape:", perTimeStateSpaceSize)
 
 L = np.zeros((stateSpaceSize,controlSpaceSize))
-Q = 2 * scipy.sparse.eye(2)
-R = 2 * scipy.sparse.eye(2)
+Q = 1 * scipy.sparse.eye(2)
+R = 1 * scipy.sparse.eye(2)
 q = 1
 
 iterations = 1000
@@ -78,7 +78,9 @@ for i in range(0, 101):
 print(L.shape)
 
 P = np.zeros((stateSpaceSize,controlSpaceSize,numberOfNeighbors+1))
+V_mask = np.zeros((stateSpaceSize,controlSpaceSize,numberOfNeighbors+1), dtype=np.uint16)
 
+print(P.shape)
 
 for i in range(stateSpaceSize):
     for j in range(controlSpaceSize):
@@ -87,13 +89,17 @@ for i in range(stateSpaceSize):
         currentControl = discreteControlSpace[j]
         currentTime = int(currentState[3])
         nextTime = (currentTime + 1) % 100
-        nextStateContinuous = errorMotionModelNoNoise(utils.time_step, currentState[0:2], currentState[2], currentControl, referenceStatesAhead[currentTime], referenceStatesAhead[currentTime+1])
+        nextStateContinuous = errorMotionModelNoNoise(utils.time_step, currentState[0:2], currentState[2], currentControl, referenceStatesAhead[currentTime], referenceStatesAhead[nextTime])
         #print("current state",currentState)
         #print("current control", currentControl)
         #print("next state", nextStateContinuous)
         nextStateDiscrete = continuousToDiscreteState(np.array(nextStateContinuous).T, discreteStateSpace[:perTimeStateSpaceSize,:3])
         nextStateNeighborsProbVectorFull = stateNeighbors[nextStateDiscrete]
-        nextStateNeighborsProbVectorNonZero = nextStateNeighborsProbVectorFull[np.nonzero(nextStateNeighborsProbVectorFull > 0)]
+        nextStateNeighborsProbVectorNonZeroIndexes = np.nonzero(nextStateNeighborsProbVectorFull > 0)
+        nextStateNeighborsProbVectorNonZero = nextStateNeighborsProbVectorFull[nextStateNeighborsProbVectorNonZeroIndexes]
+
+        V_mask[i, j, :] = np.array(nextStateNeighborsProbVectorNonZeroIndexes) + nextTime * perTimeStateSpaceSize
+
         #print("next state discrete neighbor non zero likelihoods", nextStateNeighborsProbVectorNonZero)
         P[i,j,:] = nextStateNeighborsProbVectorNonZero
         #print("next state discrete", nextStateDiscrete)
@@ -108,8 +114,47 @@ for i in range(stateSpaceSize):
         #print("--------------")
     print(i)
 
+iterations = 50
 
-print(sys.getsizeof(P))
+V = np.zeros((iterations+1, stateSpaceSize))
+pi = np.zeros((iterations+1,stateSpaceSize),dtype=np.uint16)
+
+gamma = 0.9
+
+for k in range(iterations):
+    Q = np.zeros((stateSpaceSize,controlSpaceSize))
+    for i in range(stateSpaceSize):
+        for j in range(controlSpaceSize):
+            likelihoods = np.atleast_2d(P[i,j,:])
+            expectedNextValue = likelihoods @ np.atleast_2d(V[k,V_mask[i,j]]).T
+            Q[i,j] = expectedNextValue
+    #print(Q)
+    Q = L + gamma * Q
+    pi[k+1,:] = np.argmin(Q, axis=1) #policy improvement
+    V[k+1,:] = np.min(Q, axis=1) #value update
+    maxValueDifference = np.abs(V[k+1] - V[k]).max()
+    print("max value difference", maxValueDifference)
+    print("iteration", k)
+
+np.savetxt('policy.txt', pi[-1:])
+
+
+
+
+while False:
+    Q = np.zeros((stateSpaceSize,controlSpaceSize))
+
+    for i in range(stateSpaceSize):
+        for j in range(controlSpaceSize):
+            likelihoods = P[i,j,:]
+            #nextStateNeighborsProbVectorFull = stateNeighbors[motionModel[]]
+            nextStateDiscrete = np.nonzero(nextStateNeighborsProbVectorFull > 0)
+            print(i % perTimeStateSpaceSize)
+            print(likelihoods)
+            print(nextStateDiscrete)
+
+
+#pi[k+1,:] = np.argmin(Q, axis=1) #policy improvement
 
 while False:
         
