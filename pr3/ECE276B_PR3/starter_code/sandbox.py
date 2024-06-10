@@ -8,7 +8,6 @@ from scipy.stats import multivariate_normal
 from tqdm import tqdm
 import ray
 
-
 print("here")
 
 #construction of discrete state space
@@ -17,11 +16,17 @@ discreteControlSpace = np.array(constructDiscreteControlSpace())
 
 
 stateSpaceSize = discreteStateSpace.shape[0]
+perTimeStateSpaceSize = int(stateSpaceSize / utils.T)
 controlSpaceSize = discreteControlSpace.shape[0]
+
+numberOfNeighbors = 8
+
+findNeighborsOfState(discreteStateSpace, perTimeStateSpaceSize, numberOfNeighbors)
+
 
 print("state space size:", stateSpaceSize)
 print("control space size:", controlSpaceSize)
-print("state space shape:", discreteStateSpace.shape)
+print("per time state space shape:", perTimeStateSpaceSize)
 
 L = np.zeros((stateSpaceSize,controlSpaceSize))
 Q = 2 * scipy.sparse.eye(2)
@@ -51,8 +56,8 @@ L_U = np.atleast_2d(np.sum(L_U, axis=1)).T
 
 L = np.tile(L_P_err, controlSpaceSize) + np.tile(L_Theta_err, controlSpaceSize) + np.tile(L_U, stateSpaceSize).T
 
-mu = np.zeros(3)
-print(multivariate_normal.pdf(np.array([0.2,0.2,0.01]), mu, utils.sigma))
+#mu = np.zeros(3)
+#print(multivariate_normal.pdf(np.array([0.2,0.2,0.01]), mu, utils.sigma))
 
 traj = utils.lissajous
 
@@ -63,21 +68,22 @@ for i in range(0, 101):
 
 startTime = time()
 
-numberOfNeighbors = 7
 
-for i in range(stateSpaceSize):
-    for j in range(controlSpaceSize):
-        print("--------------")
-        currentState = discreteStateSpace[i]
-        currentTime = int(currentState[3])
-        nextTime = (currentTime + 1) % 100
-        currentControl = discreteControlSpace[j]
-        nextStateContinuous = errorMotionModelNoNoise(utils.time_step, currentState[0:2], currentState[2], currentControl, referenceStatesAhead[currentTime], referenceStatesAhead[currentTime+1])
-        nextStatesIndexesDiscrete = continuousToDiscreteStateAndNeighbors(np.vstack((nextStateContinuous, nextTime)).T, discreteStateSpace, numberOfNeighbors)  
-        print("next state continuous", np.vstack((nextStateContinuous, nextTime)).T)
-        print("next states discrete", discreteStateSpace[nextStatesIndexesDiscrete])
-        print("--------------")
-        
+while False:
+    for i in range(stateSpaceSize):
+
+        for j in range(controlSpaceSize):
+            print("--------------")
+            currentState = discreteStateSpace[i]
+            currentTime = int(currentState[3])
+            nextTime = (currentTime + 1) % 100
+            currentControl = discreteControlSpace[j]
+            nextStateContinuous = errorMotionModelNoNoise(utils.time_step, currentState[0:2], currentState[2], currentControl, referenceStatesAhead[currentTime], referenceStatesAhead[currentTime+1])
+            nextStatesIndexesDiscrete = continuousToDiscreteStateAndNeighbors(np.vstack((nextStateContinuous, nextTime)).T, discreteStateSpace, numberOfNeighbors)  
+            print("next state continuous", np.vstack((nextStateContinuous, nextTime)).T)
+            print("next states discrete", discreteStateSpace[nextStatesIndexesDiscrete])
+            print("--------------")
+            
 
 
 
