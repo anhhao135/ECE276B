@@ -7,6 +7,8 @@ import scipy.sparse
 from scipy.stats import multivariate_normal
 from tqdm import tqdm
 import ray
+import sparse
+import sys
 
 print("here")
 
@@ -21,8 +23,15 @@ controlSpaceSize = discreteControlSpace.shape[0]
 
 numberOfNeighbors = 8
 
-findNeighborsOfState(discreteStateSpace, perTimeStateSpaceSize, numberOfNeighbors)
+stateNeighbors = findNeighborsOfState(discreteStateSpace, perTimeStateSpaceSize, numberOfNeighbors)
 
+#print(discreteStateSpace[5500])
+#print(stateNeighbors[5500 % perTimeStateSpaceSize])
+#print(2*perTimeStateSpaceSize + np.array(np.nonzero(stateNeighbors[5500 % perTimeStateSpaceSize] > 0)))
+
+#print(stateNeighbors[5500])
+#print(np.nonzero(stateNeighbors[5500] > 0))
+#print(stateNeighbors[5500].shape)
 
 print("state space size:", stateSpaceSize)
 print("control space size:", controlSpaceSize)
@@ -66,7 +75,58 @@ referenceStatesAhead = []
 for i in range(0, 101):
     referenceStatesAhead.append(traj(i))
 
-startTime = time()
+print(L.shape)
+
+P = np.zeros((stateSpaceSize,controlSpaceSize,numberOfNeighbors+1))
+
+
+for i in range(stateSpaceSize):
+    for j in range(controlSpaceSize):
+        #print("--------------")
+        currentState = discreteStateSpace[i]
+        currentControl = discreteControlSpace[j]
+        currentTime = int(currentState[3])
+        nextTime = (currentTime + 1) % 100
+        nextStateContinuous = errorMotionModelNoNoise(utils.time_step, currentState[0:2], currentState[2], currentControl, referenceStatesAhead[currentTime], referenceStatesAhead[currentTime+1])
+        #print("current state",currentState)
+        #print("current control", currentControl)
+        #print("next state", nextStateContinuous)
+        nextStateDiscrete = continuousToDiscreteState(np.array(nextStateContinuous).T, discreteStateSpace[:perTimeStateSpaceSize,:3])
+        nextStateNeighborsProbVectorFull = stateNeighbors[nextStateDiscrete]
+        nextStateNeighborsProbVectorNonZero = nextStateNeighborsProbVectorFull[np.nonzero(nextStateNeighborsProbVectorFull > 0)]
+        #print("next state discrete neighbor non zero likelihoods", nextStateNeighborsProbVectorNonZero)
+        P[i,j,:] = nextStateNeighborsProbVectorNonZero
+        #print("next state discrete", nextStateDiscrete)
+        #print("next state discrete neighbor likelihoods", nextStateNeighborsProbVectorFull)
+        #print(discreteStateSpace[5500])
+        #print(stateNeighbors[5500 % perTimeStateSpaceSize])
+        #print(2*perTimeStateSpaceSize + np.array(np.nonzero(stateNeighbors[5500 % perTimeStateSpaceSize] > 0)))
+        likelihoodVector = stateNeighbors[nextStateDiscrete % perTimeStateSpaceSize]
+        #P[i,j,:] = stateNeighstateNeighbors[nextStateDiscrete % perTimeStateSpaceSize]
+        #print("next state continuous", np.vstack((nextStateContinuous, nextTime)).T)
+        #print("next states discrete", discreteStateSpace[nextStatesIndexesDiscrete])
+        #print("--------------")
+    print(i)
+
+
+print(sys.getsizeof(P))
+
+while False:
+        
+    for i in range(stateSpaceSize):
+        for j in range(controlSpaceSize):
+            #print("--------------")
+            currentState = discreteStateSpace[i]
+            currentControl = discreteControlSpace[j]
+            currentTime = int(currentState[3])
+            nextTime = (currentTime + 1) % 100
+            nextStateContinuous = errorMotionModelNoNoise(utils.time_step, currentState[0:2], currentState[2], currentControl, referenceStatesAhead[currentTime], referenceStatesAhead[currentTime+1])
+            nextStateDiscrete = continuousToDiscreteState(nextStateContinuous, discreteControlSpace)
+            P[i,j,:] = stateNeighbors[nextStateDiscrete]
+            #print("next state continuous", np.vstack((nextStateContinuous, nextTime)).T)
+            #print("next states discrete", discreteStateSpace[nextStatesIndexesDiscrete])
+            #print("--------------")
+        print(i)
 
 
 while False:
