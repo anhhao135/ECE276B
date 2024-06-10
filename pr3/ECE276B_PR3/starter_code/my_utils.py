@@ -23,8 +23,13 @@ def circle(k):
     thetaref = np.arctan2(yref, xref) + np.pi/2
     return [xref, yref, thetaref]
 
+#def getError(currentState, referenceState):
+#     return currentState - referenceState
+
 def getError(currentState, referenceState):
-    return currentState - referenceState
+    error = currentState - referenceState
+    error[2] = np.arctan2(np.sin(error[2]), np.cos(error[2]))
+    return error
 
 def getPosition(state):
     return state[0:2]
@@ -48,20 +53,39 @@ def errorMotionModelNoNoise(delta_t, p_err, theta_err, u_t, currRefState, nextRe
 
 
 
-def GPI_controller(curTime, currentState, currentRef, policy, stateSpace, controlSpace):
+def GPI_controller(curTime, currentState, currentRef, policy, stateSpace, controlSpace, traj):
+
+    referenceStatesAhead = []
+
+    for i in range(curTime, curTime + 5):
+        referenceStatesAhead.append(traj(i))
+    referenceStatesAhead = np.array(referenceStatesAhead)
+    
+    referenceStatesAheadThetas = referenceStatesAhead[:,2]
+    #print("current state", currentState)
+    referenceStatesAheadThetas = np.concatenate((referenceStatesAheadThetas, np.atleast_1d(currentState[2])))
+    #print(referenceStatesAheadThetas)
+    referenceStatesAheadThetas = np.unwrap(referenceStatesAheadThetas)
+    #print(referenceStatesAheadThetas)
+    referenceStatesAhead[:,2] = referenceStatesAheadThetas[:-1]
+    currentState[2] = referenceStatesAheadThetas[-1]
+
     curTime = curTime % T
-    errorState = getError(currentState, currentRef)
+    errorState = getError(currentState, referenceStatesAhead[0])
+    
     errorState = np.append(errorState, curTime)
+
+    
     discreteState = continuousToDiscreteState(errorState,stateSpace)
     print("error state", errorState)
-    print("discrete state", stateSpace[discreteState])
-    print("control", controlSpace[int(policy[discreteState])])
+    print("discrete error state", stateSpace[discreteState])
+    #print("control", controlSpace[int(policy[discreteState])])
     return controlSpace[int(policy[discreteState])]
     #print(controlSpace[int(policy[discreteState])])
 
 
 def NLP_controller(delta_t, horizon, traj, currentIter, currentState, freeSpaceBounds, obstacle1, obstacle2, obstaclePadding):
-
+        
     obstacleCenter = np.array([[obstacle1[0], obstacle1[1]]]).T
     obstacleRadius = obstacle1[2]
 
@@ -69,26 +93,27 @@ def NLP_controller(delta_t, horizon, traj, currentIter, currentState, freeSpaceB
     obstacleRadius2 = obstacle2[2]
 
     referenceStatesAhead = []
-
     for i in range(currentIter, currentIter + horizon + 1):
         referenceStatesAhead.append(traj(i))
+    referenceStatesAhead = np.array(referenceStatesAhead)
 
     referenceStatesAhead = np.array(referenceStatesAhead)
     referenceStatesAheadThetas = referenceStatesAhead[:,2]
-    print("current state", currentState)
+    #print("current state", currentState)
     referenceStatesAheadThetas = np.concatenate((referenceStatesAheadThetas, np.atleast_1d(currentState[2])))
-    print(referenceStatesAheadThetas)
+    #print(referenceStatesAheadThetas)
     referenceStatesAheadThetas = np.unwrap(referenceStatesAheadThetas)
-    print(referenceStatesAheadThetas)
+    #print(referenceStatesAheadThetas)
     referenceStatesAhead[:,2] = referenceStatesAheadThetas[:-1]
     currentState[2] = referenceStatesAheadThetas[-1]
-
-
 
     U = MX.sym('U', 2 * horizon)
     P = MX.sym('E', 2 * horizon + 2)
     Theta = MX.sym('theta', horizon + 1)
+
     E_given = getError(currentState, referenceStatesAhead[0])
+
+    print("error", E_given)
 
     lowerBoundv = 0
     upperBoundv = 1
@@ -183,7 +208,7 @@ def NLP_controller(delta_t, horizon, traj, currentIter, currentState, freeSpaceB
 
 
 
-def constructDiscreteStateSpace(timeStepsCount = 100, positionErrorBoundMagnitude = 3, thetaErrorBoundMagnitude = np.pi, sparseDiscretizationCount = 9, densePositionErrorShrinkFactor = 0.5, denseThetaErrorShrinkFactor = 0.5):
+def constructDiscreteStateSpace(timeStepsCount = 100, positionErrorBoundMagnitude = 3, thetaErrorBoundMagnitude = np.pi, sparseDiscretizationCount = 7, densePositionErrorShrinkFactor = 0.5, denseThetaErrorShrinkFactor = 0.5):
     #construction of discrete state space
 
     sparseThetaErrorBounds = [-thetaErrorBoundMagnitude, thetaErrorBoundMagnitude]
@@ -226,7 +251,7 @@ def constructDiscreteStateSpace(timeStepsCount = 100, positionErrorBoundMagnitud
 
     return discreteStateSpace
 
-def constructDiscreteControlSpace(controlVUpperBound = 1, controlVLowerBound = 0, controlWBoundMagnitude = 1, sparseControlDiscretizationCount = 7, densesControlVShrinkFactor = 0.5, denseControlWShrinkFactor = 0.5):
+def constructDiscreteControlSpace(controlVUpperBound = 1, controlVLowerBound = 0, controlWBoundMagnitude = 1, sparseControlDiscretizationCount = 9, densesControlVShrinkFactor = 0.5, denseControlWShrinkFactor = 0.5):
 
     #construction of discrete control space
     sparseControlVBounds = [controlVLowerBound, controlVUpperBound]

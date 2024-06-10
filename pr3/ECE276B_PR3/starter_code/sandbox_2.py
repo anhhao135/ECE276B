@@ -55,9 +55,9 @@ print("control space size:", controlSpaceSize)
 print("per time state space shape:", perTimeStateSpaceSize)
 
 L = np.zeros((stateSpaceSize,controlSpaceSize))
-Q = 5 * scipy.sparse.eye(2)
-R = 1 * scipy.sparse.eye(2)
-q = 5
+Q = 20 * scipy.sparse.eye(2)
+R = 2 * scipy.sparse.eye(2)
+q = 10
 
 
 P_err = np.atleast_2d(discreteStateSpace[:,0:2].flatten())
@@ -80,7 +80,7 @@ L_U = L_U.reshape((-1, 2))
 L_U = np.atleast_2d(np.sum(L_U, axis=1)).T
 
 L = np.tile(L_P_err, controlSpaceSize) + np.tile(L_Theta_err, controlSpaceSize) + np.tile(L_U, stateSpaceSize).T
-iterations = 100
+iterations = 50
 
 V_mask = np.load('V_mask.npy')
 P = np.load('P.npy')
@@ -90,6 +90,8 @@ pi = np.zeros((iterations+1,stateSpaceSize),dtype=np.uint16)
 
 gamma = 0.9
 V_test = P
+
+
 
 
 

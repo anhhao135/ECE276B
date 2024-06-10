@@ -38,9 +38,9 @@ print("control space size:", controlSpaceSize)
 print("per time state space shape:", perTimeStateSpaceSize)
 
 L = np.zeros((stateSpaceSize,controlSpaceSize))
-Q = 5 * scipy.sparse.eye(2)
+Q = 2 * scipy.sparse.eye(2)
 R = 1 * scipy.sparse.eye(2)
-q = 5
+q = 1
 
 
 P_err = np.atleast_2d(discreteStateSpace[:,0:2].flatten())
@@ -71,8 +71,10 @@ traj = utils.lissajous
 
 referenceStatesAhead = []
 
-for i in range(0, 101):
+for i in range(0, 120):
     referenceStatesAhead.append(traj(i))
+
+referenceStatesAhead = np.array(referenceStatesAhead)
 
 
 P = np.zeros((stateSpaceSize,controlSpaceSize,numberOfNeighbors+1))
@@ -86,7 +88,17 @@ for i in range(stateSpaceSize):
         currentControl = discreteControlSpace[j]
         currentTime = int(currentState[3])
         nextTime = (currentTime + 1) % T
-        nextStateContinuous = errorMotionModelNoNoise(utils.time_step, currentState[0:2], currentState[2], currentControl, referenceStatesAhead[currentTime], referenceStatesAhead[nextTime], True)
+        referenceStatesAhead_ = referenceStatesAhead[currentTime:currentTime + 10]
+        referenceStatesAheadThetas = referenceStatesAhead_[:,2]
+        #print("current state", currentState)
+        referenceStatesAheadThetas = np.concatenate((referenceStatesAheadThetas, np.atleast_1d(currentState[2])))
+        #print(referenceStatesAheadThetas)
+        referenceStatesAheadThetas = np.unwrap(referenceStatesAheadThetas)
+        #print(referenceStatesAheadThetas)
+        referenceStatesAhead_[:,2] = referenceStatesAheadThetas[:-1]
+        currentState[2] = referenceStatesAheadThetas[-1]
+        
+        nextStateContinuous = errorMotionModelNoNoise(utils.time_step, currentState[0:2], currentState[2], currentControl, referenceStatesAhead_[0], referenceStatesAhead_[1], False)
 
 
         nextStateDiscrete = continuousToDiscreteState(np.array(nextStateContinuous).T, discreteStateSpace[:perTimeStateSpaceSize,:3])
@@ -129,7 +141,7 @@ iterations = 200
 V = np.zeros((iterations+1, stateSpaceSize))
 pi = np.zeros((iterations+1,stateSpaceSize),dtype=np.uint16)
 
-gamma = 0.9
+gamma = 0.95
 
 
 for k in range(iterations):

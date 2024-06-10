@@ -152,3 +152,5 @@ cython_debug/
 #.idea/
 pr3/ECE276B_PR3/starter_code/P.npy
 pr3/ECE276B_PR3/starter_code/V_mask.npy
+pr3/ECE276B_PR3/starter_code/backup/P.npy
+pr3/ECE276B_PR3/starter_code/backup/V_mask.npy
