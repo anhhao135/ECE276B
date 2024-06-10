@@ -38,11 +38,10 @@ print("control space size:", controlSpaceSize)
 print("per time state space shape:", perTimeStateSpaceSize)
 
 L = np.zeros((stateSpaceSize,controlSpaceSize))
-Q = 1 * scipy.sparse.eye(2)
+Q = 5 * scipy.sparse.eye(2)
 R = 1 * scipy.sparse.eye(2)
-q = 1
+q = 5
 
-iterations = 1000
 
 P_err = np.atleast_2d(discreteStateSpace[:,0:2].flatten())
 Theta_err = discreteStateSpace[:,2]
@@ -75,12 +74,10 @@ referenceStatesAhead = []
 for i in range(0, 101):
     referenceStatesAhead.append(traj(i))
 
-print(L.shape)
 
 P = np.zeros((stateSpaceSize,controlSpaceSize,numberOfNeighbors+1))
 V_mask = np.zeros((stateSpaceSize,controlSpaceSize,numberOfNeighbors+1), dtype=np.uint16)
 
-print(P.shape)
 
 for i in range(stateSpaceSize):
     for j in range(controlSpaceSize):
@@ -88,15 +85,25 @@ for i in range(stateSpaceSize):
         currentState = discreteStateSpace[i]
         currentControl = discreteControlSpace[j]
         currentTime = int(currentState[3])
-        nextTime = (currentTime + 1) % 100
-        nextStateContinuous = errorMotionModelNoNoise(utils.time_step, currentState[0:2], currentState[2], currentControl, referenceStatesAhead[currentTime], referenceStatesAhead[nextTime])
-        #print("current state",currentState)
-        #print("current control", currentControl)
-        #print("next state", nextStateContinuous)
+        nextTime = (currentTime + 1) % T
+        nextStateContinuous = errorMotionModelNoNoise(utils.time_step, currentState[0:2], currentState[2], currentControl, referenceStatesAhead[currentTime], referenceStatesAhead[nextTime], True)
+
+
         nextStateDiscrete = continuousToDiscreteState(np.array(nextStateContinuous).T, discreteStateSpace[:perTimeStateSpaceSize,:3])
+
         nextStateNeighborsProbVectorFull = stateNeighbors[nextStateDiscrete]
         nextStateNeighborsProbVectorNonZeroIndexes = np.nonzero(nextStateNeighborsProbVectorFull > 0)
         nextStateNeighborsProbVectorNonZero = nextStateNeighborsProbVectorFull[nextStateNeighborsProbVectorNonZeroIndexes]
+
+        if (np.array_equal(currentState, np.array([0,0,0,0]))):
+            print("current state",currentState)
+            print("current control", currentControl)
+            print("next state", nextStateContinuous)
+            print("next state discrete", discreteStateSpace[nextStateDiscrete + perTimeStateSpaceSize])
+            print("next state discrete index", nextStateDiscrete + perTimeStateSpaceSize)
+            print(np.array(nextStateNeighborsProbVectorNonZeroIndexes) + perTimeStateSpaceSize)
+            print(nextStateNeighborsProbVectorNonZero)
+            print("\n\n")
 
         V_mask[i, j, :] = np.array(nextStateNeighborsProbVectorNonZeroIndexes) + nextTime * perTimeStateSpaceSize
 
@@ -114,30 +121,36 @@ for i in range(stateSpaceSize):
         #print("--------------")
     print(i)
 
-iterations = 50
+
+np.save('P.npy', P)
+np.save('V_mask.npy', V_mask)
+iterations = 200
 
 V = np.zeros((iterations+1, stateSpaceSize))
 pi = np.zeros((iterations+1,stateSpaceSize),dtype=np.uint16)
 
 gamma = 0.9
 
+
 for k in range(iterations):
     Q = np.zeros((stateSpaceSize,controlSpaceSize))
-    for i in range(stateSpaceSize):
-        for j in range(controlSpaceSize):
-            likelihoods = np.atleast_2d(P[i,j,:])
-            expectedNextValue = likelihoods @ np.atleast_2d(V[k,V_mask[i,j]]).T
-            Q[i,j] = expectedNextValue
-    #print(Q)
-    Q = L + gamma * Q
+    V_k = V[k,:][V_mask]
+    Q = L + gamma * np.sum(np.multiply(P,V_k), axis=2)
     pi[k+1,:] = np.argmin(Q, axis=1) #policy improvement
     V[k+1,:] = np.min(Q, axis=1) #value update
     maxValueDifference = np.abs(V[k+1] - V[k]).max()
+
+    discreteState = continuousToDiscreteState(np.array([0,0,0,0]),discreteStateSpace)
+    print("control for no error at time 0", discreteControlSpace[int(pi[k+1,discreteState])])
+    print("Q for discrete state", Q[discreteState])
+
+
     print("max value difference", maxValueDifference)
     print("iteration", k)
 
 np.savetxt('policy.txt', pi[-1:])
-
+np.savetxt('controlSpace.txt', discreteControlSpace)
+np.savetxt('stateSpace.txt', discreteStateSpace)
 
 
 

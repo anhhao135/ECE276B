@@ -6,6 +6,8 @@ from time import time
 from tqdm import tqdm
 from casadi import *
 from utils import *
+from scipy.stats import multivariate_normal
+import scipy.sparse
 
 
 
@@ -30,7 +32,7 @@ def getPosition(state):
 def getOrientation(state):
     return state[2]
 
-def errorMotionModelNoNoise(delta_t, p_err, theta_err, u_t, currRefState, nextRefState):
+def errorMotionModelNoNoise(delta_t, p_err, theta_err, u_t, currRefState, nextRefState, angleWrap = False):
     u_t_2d = np.array([[u_t[0]],[u_t[1]]])
     p_err_2d = np.array([[p_err[0]],[p_err[1]],[theta_err]])
     G = np.array([[delta_t * np.cos(theta_err + currRefState[2]), 0], [delta_t * np.sin(theta_err + currRefState[2]), 0], [0, delta_t]])
@@ -38,8 +40,24 @@ def errorMotionModelNoNoise(delta_t, p_err, theta_err, u_t, currRefState, nextRe
     refOriDiff = np.atleast_2d(np.array(currRefState[2] - nextRefState[2]))
     refDiff = np.vstack((refPosDiff,refOriDiff))
     p_err_next = (p_err_2d + G @ u_t_2d + refDiff).flatten()
+
+    if angleWrap:
+        p_err_next[2] = np.arctan2(np.sin(p_err_next[2]), np.cos(p_err_next[2]))
+
     return vertcat(p_err_next[0], p_err_next[1], p_err_next[2])
 
+
+
+def GPI_controller(curTime, currentState, currentRef, policy, stateSpace, controlSpace):
+    curTime = curTime % T
+    errorState = getError(currentState, currentRef)
+    errorState = np.append(errorState, curTime)
+    discreteState = continuousToDiscreteState(errorState,stateSpace)
+    print("error state", errorState)
+    print("discrete state", stateSpace[discreteState])
+    print("control", controlSpace[int(policy[discreteState])])
+    return controlSpace[int(policy[discreteState])]
+    #print(controlSpace[int(policy[discreteState])])
 
 
 def NLP_controller(delta_t, horizon, traj, currentIter, currentState, freeSpaceBounds, obstacle1, obstacle2, obstaclePadding):
@@ -57,6 +75,15 @@ def NLP_controller(delta_t, horizon, traj, currentIter, currentState, freeSpaceB
 
     referenceStatesAhead = np.array(referenceStatesAhead)
     referenceStatesAheadThetas = referenceStatesAhead[:,2]
+    print("current state", currentState)
+    referenceStatesAheadThetas = np.concatenate((referenceStatesAheadThetas, np.atleast_1d(currentState[2])))
+    print(referenceStatesAheadThetas)
+    referenceStatesAheadThetas = np.unwrap(referenceStatesAheadThetas)
+    print(referenceStatesAheadThetas)
+    referenceStatesAhead[:,2] = referenceStatesAheadThetas[:-1]
+    currentState[2] = referenceStatesAheadThetas[-1]
+
+
 
     U = MX.sym('U', 2 * horizon)
     P = MX.sym('E', 2 * horizon + 2)
@@ -64,15 +91,15 @@ def NLP_controller(delta_t, horizon, traj, currentIter, currentState, freeSpaceB
     E_given = getError(currentState, referenceStatesAhead[0])
 
     lowerBoundv = 0
-    upperBoundv = 10
-    lowerBoundw = -10
-    upperBoundw = 10
+    upperBoundv = 1
+    lowerBoundw = -1
+    upperBoundw = 1
 
     lowerBoundPositionError = -5
     upperBoundPositionError = 5
 
-    lowerBoundOrientationError = -0.3
-    upperBoundOrientationError = 0.3
+    lowerBoundOrientationError = -0.5
+    upperBoundOrientationError = 0.5
 
     controlInputSolverLowerConstraint = list(np.tile(np.array([lowerBoundv, lowerBoundw]), horizon))
     controlInputSolverUpperConstraint = list(np.tile(np.array([upperBoundv, upperBoundw]), horizon))
@@ -99,13 +126,13 @@ def NLP_controller(delta_t, horizon, traj, currentIter, currentState, freeSpaceB
 
     variables = vertcat(U, P, Theta)
 
-    Q = 4 * np.eye(2)
+    Q = 20 * np.eye(2)
     QBatch = np.kron(np.eye(horizon,dtype=int),Q)
 
-    R = 2 * np.eye(2)
+    R = 5 * np.eye(2)
     RBatch = np.kron(np.eye(horizon,dtype=int),R)
 
-    q = 1
+    q = 5
 
     gammaValue = 0.95
     gammas = np.zeros(horizon)
@@ -156,7 +183,7 @@ def NLP_controller(delta_t, horizon, traj, currentIter, currentState, freeSpaceB
 
 
 
-def constructDiscreteStateSpace(timeStepsCount = 100, positionErrorBoundMagnitude = 3, thetaErrorBoundMagnitude = np.pi, sparseDiscretizationCount = 7, densePositionErrorShrinkFactor = 0.3, denseThetaErrorShrinkFactor = 0.3):
+def constructDiscreteStateSpace(timeStepsCount = 100, positionErrorBoundMagnitude = 3, thetaErrorBoundMagnitude = np.pi, sparseDiscretizationCount = 9, densePositionErrorShrinkFactor = 0.5, denseThetaErrorShrinkFactor = 0.5):
     #construction of discrete state space
 
     sparseThetaErrorBounds = [-thetaErrorBoundMagnitude, thetaErrorBoundMagnitude]
@@ -178,22 +205,19 @@ def constructDiscreteStateSpace(timeStepsCount = 100, positionErrorBoundMagnitud
     denseThetaError = np.linspace(denseThetaErrorBounds[0], denseThetaErrorBounds[1], denseDiscretizationCount)
     denseXErrorGrid, denseYErrorGrid, denseZErrorGrid = np.meshgrid(denseXError, denseYError, denseThetaError, indexing='ij')
 
-
     discreteStateSpace = []
 
-    for i in range(denseDiscretizationCount):
-        for j in range(denseDiscretizationCount):
-            for k in range(denseDiscretizationCount):
-                for t in range(timeStepsCount):
+    for t in range(timeStepsCount):
+        for i in range(denseDiscretizationCount):
+            for j in range(denseDiscretizationCount):
+                for k in range(denseDiscretizationCount):
                     x = denseXErrorGrid[i,j,k]
                     y = denseYErrorGrid[i,j,k]
                     z = denseZErrorGrid[i,j,k]
                     discreteStateSpace.append([x,y,z,t])
-
-    for i in range(sparseDiscretizationCount):
-        for j in range(sparseDiscretizationCount):
-            for k in range(sparseDiscretizationCount):
-                for t in range(timeStepsCount):
+        for i in range(sparseDiscretizationCount):
+            for j in range(sparseDiscretizationCount):
+                for k in range(sparseDiscretizationCount):
                     x = sparseXErrorGrid[i,j,k]
                     y = sparseYErrorGrid[i,j,k]
                     z = sparseZErrorGrid[i,j,k]
@@ -202,10 +226,10 @@ def constructDiscreteStateSpace(timeStepsCount = 100, positionErrorBoundMagnitud
 
     return discreteStateSpace
 
-def constructDiscreteControlSpace(controlVBoundMagnitude = 10, controlWBoundMagnitude = 2, sparseControlDiscretizationCount = 7, densesControlVShrinkFactor = 0.3, denseControlWShrinkFactor = 0.3):
+def constructDiscreteControlSpace(controlVUpperBound = 1, controlVLowerBound = 0, controlWBoundMagnitude = 1, sparseControlDiscretizationCount = 7, densesControlVShrinkFactor = 0.5, denseControlWShrinkFactor = 0.5):
 
     #construction of discrete control space
-    sparseControlVBounds = [-controlVBoundMagnitude, controlVBoundMagnitude]
+    sparseControlVBounds = [controlVLowerBound, controlVUpperBound]
     sparseControlWBounds = [-controlWBoundMagnitude, controlWBoundMagnitude]
 
      # number of grid points in one axis
@@ -241,14 +265,35 @@ def constructDiscreteControlSpace(controlVBoundMagnitude = 10, controlWBoundMagn
     return discreteControlSpace
 
 
+def continuousToDiscreteStateAndNeighbors(continuousState, discreteStates, neighborCount):
+    distances = continuousState[0:3] - discreteStates[:, 0:3]
+    distances = np.linalg.norm(distances, axis=1)
+    smallestDistances = distances.argsort()[:neighborCount+1]
+    return smallestDistances
+
 def continuousToDiscreteState(continuousState, discreteStates):
     distances = continuousState - discreteStates
     distances = np.linalg.norm(distances, axis=1)
     return np.argmin(distances)
 
-def getNeighboringStates(state, discreteStates, neighborCount):
-    distances = state - discreteStates
-    distances = np.linalg.norm(distances, axis=1)
-    smallestDistances = distances.argsort()[:neighborCount]
-    return smallestDistances
 
+def findNeighborsOfState(discreteStates, perTimeStateSize, numberOfNeighbors):
+    #input, discrete state space
+    #output, a matrix to lookup the stochastic vector of neighbors of the state and their likelihoods, given that input state is the mean
+    stateSpaceSize = discreteStates.shape[0]
+    states = discreteStates[0:perTimeStateSize, 0:3]
+    perTimeStateNeighbors = np.zeros((perTimeStateSize, perTimeStateSize))
+    for i in range(perTimeStateSize):
+        neighborStatesIndexes = continuousToDiscreteStateAndNeighbors(states[i], states, numberOfNeighbors)
+        neighborStates = states[neighborStatesIndexes]
+        likelihoods = multivariate_normal.pdf(neighborStates, states[i], sigma)
+        likelihoodsNormalized = likelihoods / np.sum(likelihoods, axis=0)
+        #print("mean state", states[i])
+        #print("neighbor states", neighborStates)
+        #print("norm probs", likelihoodsNormalized)
+        likelihoodsVector = np.zeros(perTimeStateSize)
+        #print(likelihoodsNormalized.shape)
+        #print(transitions[neighborStatesIndexes.astype(int).shape])
+        likelihoodsVector[neighborStatesIndexes.astype(int)] = likelihoodsNormalized
+        perTimeStateNeighbors[i,:] = likelihoodsVector
+    return perTimeStateNeighbors

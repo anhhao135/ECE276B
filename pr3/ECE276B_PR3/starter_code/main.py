@@ -5,6 +5,13 @@ import my_utils
 
 
 def main():
+
+    #GPI controller
+    GPI_policy = np.loadtxt('policy.txt')
+    GPI_stateSpace = np.loadtxt('stateSpace.txt')
+    GPI_controlSpace = np.loadtxt('controlSpace.txt')
+
+
     # Obstacles in the environment
     obstacles = np.array([[-2, -2, 0.5], [1, 2, 0.5]])
     # Params
@@ -37,6 +44,9 @@ def main():
         # TODO: Replace this simple controller with your own controller
         #control = utils.simple_controller(cur_state, cur_ref)
         control = my_utils.NLP_controller(utils.time_step, 5, traj, cur_iter, cur_state, [-3,-3,3,3], obstacles[0], obstacles[1], 0.2)
+
+        control = my_utils.GPI_controller(cur_iter, cur_state, cur_ref, GPI_policy, GPI_stateSpace, GPI_controlSpace)
+
         #print("[v,w]", control)
         print("current ref state", cur_ref)
         print("my [v,w]", control)
