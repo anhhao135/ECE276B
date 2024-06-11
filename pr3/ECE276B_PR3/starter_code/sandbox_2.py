@@ -38,9 +38,9 @@ print("control space size:", controlSpaceSize)
 print("per time state space shape:", perTimeStateSpaceSize)
 
 L = np.zeros((stateSpaceSize,controlSpaceSize))
-Q = 2 * scipy.sparse.eye(2)
+Q = 10 * scipy.sparse.eye(2)
 R = 1 * scipy.sparse.eye(2)
-q = 1
+q = 30
 
 
 P_err = np.atleast_2d(discreteStateSpace[:,0:2].flatten())
