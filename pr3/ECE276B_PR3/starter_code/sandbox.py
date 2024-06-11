@@ -10,8 +10,6 @@ import ray
 import sparse
 import sys
 
-print("here")
-
 #construction of discrete state space
 discreteStateSpace = np.array(constructDiscreteStateSpace())
 discreteControlSpace = np.array(constructDiscreteControlSpace())
@@ -21,7 +19,7 @@ stateSpaceSize = discreteStateSpace.shape[0]
 perTimeStateSpaceSize = int(stateSpaceSize / utils.T)
 controlSpaceSize = discreteControlSpace.shape[0]
 
-numberOfNeighbors = 8
+numberOfNeighbors = 6
 
 stateNeighbors = findNeighborsOfState(discreteStateSpace, perTimeStateSpaceSize, numberOfNeighbors)
 
@@ -98,7 +96,7 @@ for i in range(stateSpaceSize):
         referenceStatesAhead_[:,2] = referenceStatesAheadThetas[:-1]
         currentState[2] = referenceStatesAheadThetas[-1]
         
-        nextStateContinuous = errorMotionModelNoNoise(utils.time_step, currentState[0:2], currentState[2], currentControl, referenceStatesAhead_[0], referenceStatesAhead_[1], False)
+        nextStateContinuous = errorMotionModelNoNoise(utils.time_step, currentState[0:2], currentState[2], currentControl, referenceStatesAhead_[0], referenceStatesAhead_[1], True)
 
 
         nextStateDiscrete = continuousToDiscreteState(np.array(nextStateContinuous).T, discreteStateSpace[:perTimeStateSpaceSize,:3])

@@ -10,24 +10,7 @@ import ray
 import sparse
 import sys
 
-while False:
-    V = np.array([1,2,3,4,5,6])
 
-    V_mask = np.zeros((2,2,2))
-    V_mask[0,0] = np.array([0,1])
-    V_mask[0,1] = np.array([1,2])
-    V_mask[1,0] = np.array([2,3])
-    V_mask[1,1] = np.array([1,3])
-    V_mask = V_mask.astype(np.uint16)
-
-    P = np.zeros((2,2,2))
-    print(V[V_mask])
-
-    print(V_mask.shape)
-
-
-
-print("here")
 
 #construction of discrete state space
 discreteStateSpace = np.array(constructDiscreteStateSpace())
@@ -55,9 +38,9 @@ print("control space size:", controlSpaceSize)
 print("per time state space shape:", perTimeStateSpaceSize)
 
 L = np.zeros((stateSpaceSize,controlSpaceSize))
-Q = 20 * scipy.sparse.eye(2)
-R = 2 * scipy.sparse.eye(2)
-q = 10
+Q = 2 * scipy.sparse.eye(2)
+R = 1 * scipy.sparse.eye(2)
+q = 1
 
 
 P_err = np.atleast_2d(discreteStateSpace[:,0:2].flatten())
@@ -80,7 +63,21 @@ L_U = L_U.reshape((-1, 2))
 L_U = np.atleast_2d(np.sum(L_U, axis=1)).T
 
 L = np.tile(L_P_err, controlSpaceSize) + np.tile(L_Theta_err, controlSpaceSize) + np.tile(L_U, stateSpaceSize).T
-iterations = 50
+
+#mu = np.zeros(3)
+#print(multivariate_normal.pdf(np.array([0.2,0.2,0.01]), mu, utils.sigma))
+
+traj = utils.lissajous
+
+referenceStatesAhead = []
+
+for i in range(0, 120):
+    referenceStatesAhead.append(traj(i))
+
+referenceStatesAhead = np.array(referenceStatesAhead)
+
+iterations = 100
+
 
 V_mask = np.load('V_mask.npy')
 P = np.load('P.npy')
@@ -88,11 +85,7 @@ P = np.load('P.npy')
 V = np.zeros((iterations+1, stateSpaceSize))
 pi = np.zeros((iterations+1,stateSpaceSize),dtype=np.uint16)
 
-gamma = 0.9
-V_test = P
-
-
-
+gamma = 0.95
 
 
 for k in range(iterations):

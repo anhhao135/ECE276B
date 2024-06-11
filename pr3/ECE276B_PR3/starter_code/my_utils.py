@@ -208,7 +208,7 @@ def NLP_controller(delta_t, horizon, traj, currentIter, currentState, freeSpaceB
 
 
 
-def constructDiscreteStateSpace(timeStepsCount = 100, positionErrorBoundMagnitude = 3, thetaErrorBoundMagnitude = np.pi, sparseDiscretizationCount = 7, densePositionErrorShrinkFactor = 0.5, denseThetaErrorShrinkFactor = 0.5):
+def constructDiscreteStateSpace(timeStepsCount = 100, positionErrorBoundMagnitude = 3, thetaErrorBoundMagnitude = np.pi, sparseDiscretizationCount = 9, densePositionErrorShrinkFactor = 0.4, denseThetaErrorShrinkFactor = 0.4):
     #construction of discrete state space
 
     sparseThetaErrorBounds = [-thetaErrorBoundMagnitude, thetaErrorBoundMagnitude]
@@ -251,7 +251,7 @@ def constructDiscreteStateSpace(timeStepsCount = 100, positionErrorBoundMagnitud
 
     return discreteStateSpace
 
-def constructDiscreteControlSpace(controlVUpperBound = 1, controlVLowerBound = 0, controlWBoundMagnitude = 1, sparseControlDiscretizationCount = 9, densesControlVShrinkFactor = 0.5, denseControlWShrinkFactor = 0.5):
+def constructDiscreteControlSpace(controlVUpperBound = 1, controlVLowerBound = 0, controlWBoundMagnitude = 1, sparseControlDiscretizationCount = 9, densesControlVShrinkFactor = 0.6, denseControlWShrinkFactor = 0.6):
 
     #construction of discrete control space
     sparseControlVBounds = [controlVLowerBound, controlVUpperBound]

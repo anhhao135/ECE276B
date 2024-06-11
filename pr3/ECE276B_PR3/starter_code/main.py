@@ -29,7 +29,7 @@ def main():
     cur_iter = 0
     # Main loop
     #while cur_iter * utils.time_step < utils.sim_time:
-    while cur_iter < 100:
+    while cur_iter < 200:
         t1 = time()
         # Get reference state
         cur_time = cur_iter * utils.time_step
