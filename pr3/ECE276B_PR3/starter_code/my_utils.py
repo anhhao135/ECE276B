@@ -84,7 +84,7 @@ def GPI_controller(curTime, currentState, currentRef, policy, stateSpace, contro
     #print(controlSpace[int(policy[discreteState])])
 
 
-def NLP_controller(delta_t, horizon, traj, currentIter, currentState, freeSpaceBounds, obstacle1, obstacle2, obstaclePadding):
+def NLP_controller(delta_t, horizon, traj, currentIter, currentState, freeSpaceBounds, obstacle1, obstacle2, Q_in, R_in, q_in, obstaclePadding, gamma_in):
         
     obstacleCenter = np.array([[obstacle1[0], obstacle1[1]]]).T
     obstacleRadius = obstacle1[2]
@@ -151,15 +151,15 @@ def NLP_controller(delta_t, horizon, traj, currentIter, currentState, freeSpaceB
 
     variables = vertcat(U, P, Theta)
 
-    Q = 20 * np.eye(2)
+    Q = Q_in * np.eye(2)
     QBatch = np.kron(np.eye(horizon,dtype=int),Q)
 
-    R = 5 * np.eye(2)
+    R = R_in * np.eye(2)
     RBatch = np.kron(np.eye(horizon,dtype=int),R)
 
-    q = 5
+    q = q_in
 
-    gammaValue = 0.95
+    gammaValue = gamma_in
     gammas = np.zeros(horizon)
     for i in range(horizon):
         gammas[i] = gammaValue**i

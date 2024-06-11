@@ -61,7 +61,7 @@ def car_next_state(time_step, cur_state, control, noise=True):
         return cur_state + time_step * f.flatten()
 
 
-def visualize(car_states, ref_traj, obstacles, t, time_step, save=False):
+def visualize(car_states, ref_traj, obstacles, t, time_step, save=False, plotTitle=""):
     init_state = car_states[0, :]
 
     def create_triangle(state=[0, 0, 0], h=0.5, w=0.25, update=False):
@@ -157,6 +157,7 @@ def visualize(car_states, ref_traj, obstacles, t, time_step, save=False):
         blit=True,
         repeat=True,
     )
+    plt.title(plotTitle)
     plt.show()
 
     if save == True:

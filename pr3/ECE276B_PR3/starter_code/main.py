@@ -2,21 +2,49 @@ from time import time
 import numpy as np
 import utils
 import my_utils
-
+import sys
 
 def main():
 
+    if len(sys.argv) == 1:
+        raise Exception("Need to specify either nlp or gpi controller!")
+    
+    typeOfController = str(sys.argv[1])
+
+    print(typeOfController)
+
+    if not (typeOfController == "nlp" or typeOfController == "gpi"):
+        raise Exception("Need to specify either nlp or gpi controller!")
+    
+    plotTitle = ""
+
+    #tuning parameters
+    Q = 0
+    R = 0
+    q = 0
+    gamma = 0
+    CEC_horizon = 0
+
+
+    if (typeOfController == "nlp"):
+        #nlp tuning parameters
+        Q = 20
+        R = 5
+        q = 5
+        gamma = 0.95
+        CEC_horizon = 5
+        plotTitle = "CEC, NLP-solved, trajectory tracking\nQ: {Q}, R: {R}, q: {q}, gamma: {gamma}, horizon: {CEC_horizon}".format(Q = Q, R = R, q = q, gamma = gamma, CEC_horizon = CEC_horizon)
+
+    
     #GPI controller
     GPI_policy = np.loadtxt('policy.txt')
     GPI_stateSpace = np.loadtxt('stateSpace.txt')
     GPI_controlSpace = np.loadtxt('controlSpace.txt')
 
-
     # Obstacles in the environment
     obstacles = np.array([[-2, -2, 0.5], [1, 2, 0.5]])
     # Params
     traj = utils.lissajous
-    print(traj)
     ref_traj = []
     error_trans = 0.0
     error_rot = 0.0
@@ -34,7 +62,6 @@ def main():
         # Get reference state
         cur_time = cur_iter * utils.time_step
         cur_ref = traj(cur_iter)
-        #print(cur_ref)
         print(cur_iter)
         # Save current state and reference state for visualization
         ref_traj.append(cur_ref)
@@ -42,17 +69,16 @@ def main():
 
         ################################################################
         # Generate control input
-        # TODO: Replace this simple controller with your own controller
-        #control = utils.simple_controller(cur_state, cur_ref)
-        #control = my_utils.NLP_controller(utils.time_step, 5, traj, cur_iter, cur_state, [-3,-3,3,3], obstacles[0], obstacles[1], 0.2)
+        control = None
 
-        control = my_utils.GPI_controller(cur_iter, cur_state, cur_ref, GPI_policy, GPI_stateSpace, GPI_controlSpace, traj)
+        if typeOfController == "nlp":
+            control = my_utils.NLP_controller(utils.time_step, CEC_horizon, traj, cur_iter, cur_state, [-3,-3,3,3], obstacles[0], obstacles[1], Q, R, q, 0.2, gamma)
+        elif typeOfController == "gpi":
+            control = my_utils.GPI_controller(cur_iter, cur_state, cur_ref, GPI_policy, GPI_stateSpace, GPI_controlSpace, traj)
 
-        #print("[v,w]", control)
         print("current ref state", cur_ref)
-        print("current real state", cur_state)
-        #print("nlp [v,w]", nlp_control)
-        print("gpi [v,w]", control)
+        print("current robot state", cur_state)
+        print("current control input", control)
         ################################################################
 
         # Apply control input
@@ -61,8 +87,6 @@ def main():
         cur_state = next_state 
         # Loop time
         t2 = utils.time()
-        #print(cur_iter)
-        #print(t2 - t1)
         times.append(t2 - t1)
         cur_err = cur_state - cur_ref
         cur_err[2] = np.arctan2(np.sin(cur_err[2]), np.cos(cur_err[2]))
@@ -76,14 +100,14 @@ def main():
     print("\n\n")
     print("Total time: ", main_loop_time - main_loop)
     print("Average iteration time: ", np.array(times).mean() * 1000, "ms")
-    print("Final error_trains: ", error_trans)
-    print("Final error_rot: ", error_rot)
+    print("Final total translational error: ", error_trans)
+    print("Final total rotational error: ", error_rot)
 
     # Visualization
     ref_traj = np.array(ref_traj)
     car_states = np.array(car_states)
     times = np.array(times)
-    utils.visualize(car_states, ref_traj, obstacles, times, utils.time_step, save=False)
+    utils.visualize(car_states, ref_traj, obstacles, times, utils.time_step, False, plotTitle)
 
 
 if __name__ == "__main__":
