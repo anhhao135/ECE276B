@@ -1,43 +1,20 @@
 import numpy as np
 from numpy import sin, cos, pi
-import matplotlib.pyplot as plt
-from matplotlib import animation
-from time import time
-from tqdm import tqdm
 from casadi import *
 from utils import *
 from scipy.stats import multivariate_normal
-import scipy.sparse
 
-
-
-def circle(k):
-    a = 2 * np.pi / (T * time_step)
-    delta = np.pi / 2
-    radius = 1.5
-    xref_start = 0
-    yref_start = 0
-    k = k % T
-    xref = xref_start + radius * np.cos(a * k * time_step + delta)
-    yref = yref_start + radius * np.sin(a * k * time_step + delta)
-    thetaref = np.arctan2(yref, xref) + np.pi/2
-    return [xref, yref, thetaref]
-
-#def getError(currentState, referenceState):
-#     return currentState - referenceState
+#common functions
 
 def getError(currentState, referenceState):
+    #return error between current robot state and reference trajectory
     error = currentState - referenceState
     error[2] = np.arctan2(np.sin(error[2]), np.cos(error[2]))
     return error
 
-def getPosition(state):
-    return state[0:2]
-
-def getOrientation(state):
-    return state[2]
-
 def errorMotionModelNoNoise(delta_t, p_err, theta_err, u_t, currRefState, nextRefState, angleWrap = False):
+    #error motion model defined in projet handout
+    #coded to work with Casadi solver variables
     u_t_2d = np.array([[u_t[0]],[u_t[1]]])
     p_err_2d = np.array([[p_err[0]],[p_err[1]],[theta_err]])
     G = np.array([[delta_t * np.cos(theta_err + currRefState[2]), 0], [delta_t * np.sin(theta_err + currRefState[2]), 0], [0, delta_t]])
@@ -45,44 +22,14 @@ def errorMotionModelNoNoise(delta_t, p_err, theta_err, u_t, currRefState, nextRe
     refOriDiff = np.atleast_2d(np.array(currRefState[2] - nextRefState[2]))
     refDiff = np.vstack((refPosDiff,refOriDiff))
     p_err_next = (p_err_2d + G @ u_t_2d + refDiff).flatten()
-
     if angleWrap:
         p_err_next[2] = np.arctan2(np.sin(p_err_next[2]), np.cos(p_err_next[2]))
-
     return vertcat(p_err_next[0], p_err_next[1], p_err_next[2])
 
 
 
-def GPI_controller(curTime, currentState, currentRef, policy, stateSpace, controlSpace, traj):
 
-    referenceStatesAhead = []
-
-    for i in range(curTime, curTime + 5):
-        referenceStatesAhead.append(traj(i))
-    referenceStatesAhead = np.array(referenceStatesAhead)
-    
-    referenceStatesAheadThetas = referenceStatesAhead[:,2]
-    #print("current state", currentState)
-    referenceStatesAheadThetas = np.concatenate((referenceStatesAheadThetas, np.atleast_1d(currentState[2])))
-    #print(referenceStatesAheadThetas)
-    referenceStatesAheadThetas = np.unwrap(referenceStatesAheadThetas)
-    #print(referenceStatesAheadThetas)
-    referenceStatesAhead[:,2] = referenceStatesAheadThetas[:-1]
-    currentState[2] = referenceStatesAheadThetas[-1]
-
-    curTime = curTime % T
-    errorState = getError(currentState, referenceStatesAhead[0])
-    
-    errorState = np.append(errorState, curTime)
-
-    
-    discreteState = continuousToDiscreteState(errorState,stateSpace)
-    print("error state", errorState)
-    print("discrete error state", stateSpace[discreteState])
-    #print("control", controlSpace[int(policy[discreteState])])
-    return controlSpace[int(policy[discreteState])]
-    #print(controlSpace[int(policy[discreteState])])
-
+#CEC NLP solver functions
 
 def NLP_controller(delta_t, horizon, traj, currentIter, currentState, freeSpaceBounds, obstacle1, obstacle2, Q_in, R_in, q_in, obstaclePadding, gamma_in):
         
@@ -221,6 +168,42 @@ def NLP_controller(delta_t, horizon, traj, currentIter, currentState, freeSpaceB
 
     #return the first control input of the solution sequence
     return [float(sol["x"][0]), float(sol["x"][1])]
+
+
+
+
+
+#GPI solver functions
+
+def GPI_controller(curTime, currentState, currentRef, policy, stateSpace, controlSpace, traj):
+
+    referenceStatesAhead = []
+
+    for i in range(curTime, curTime + 5):
+        referenceStatesAhead.append(traj(i))
+    referenceStatesAhead = np.array(referenceStatesAhead)
+    
+    referenceStatesAheadThetas = referenceStatesAhead[:,2]
+    #print("current state", currentState)
+    referenceStatesAheadThetas = np.concatenate((referenceStatesAheadThetas, np.atleast_1d(currentState[2])))
+    #print(referenceStatesAheadThetas)
+    referenceStatesAheadThetas = np.unwrap(referenceStatesAheadThetas)
+    #print(referenceStatesAheadThetas)
+    referenceStatesAhead[:,2] = referenceStatesAheadThetas[:-1]
+    currentState[2] = referenceStatesAheadThetas[-1]
+
+    curTime = curTime % T
+    errorState = getError(currentState, referenceStatesAhead[0])
+    
+    errorState = np.append(errorState, curTime)
+
+    
+    discreteState = continuousToDiscreteState(errorState,stateSpace)
+    print("error state", errorState)
+    print("discrete error state", stateSpace[discreteState])
+    #print("control", controlSpace[int(policy[discreteState])])
+    return controlSpace[int(policy[discreteState])]
+    #print(controlSpace[int(policy[discreteState])])
 
 
 
