@@ -207,7 +207,7 @@ def GPI_controller(curTime, currentState, currentRef, policy, stateSpace, contro
 
 
 
-def constructDiscreteStateSpace(timeStepsCount = 100, positionErrorBoundMagnitude = 3, thetaErrorBoundMagnitude = np.pi, sparseDiscretizationCount = 9, densePositionErrorShrinkFactor = 0.4, denseThetaErrorShrinkFactor = 0.4):
+def constructDiscreteStateSpace(timeStepsCount = 100, positionErrorBoundMagnitude = 3, thetaErrorBoundMagnitude = np.pi, sparseDiscretizationCount = 2, densePositionErrorShrinkFactor = 0.4, denseThetaErrorShrinkFactor = 0.4):
     #construction of discrete state space
 
     sparseThetaErrorBounds = [-thetaErrorBoundMagnitude, thetaErrorBoundMagnitude]
@@ -250,7 +250,7 @@ def constructDiscreteStateSpace(timeStepsCount = 100, positionErrorBoundMagnitud
 
     return discreteStateSpace
 
-def constructDiscreteControlSpace(controlVUpperBound = 1, controlVLowerBound = 0, controlWBoundMagnitude = 1, sparseControlDiscretizationCount = 9, densesControlVShrinkFactor = 0.6, denseControlWShrinkFactor = 0.6):
+def constructDiscreteControlSpace(controlVUpperBound = 1, controlVLowerBound = 0, controlWBoundMagnitude = 1, sparseControlDiscretizationCount = 3, densesControlVShrinkFactor = 0.6, denseControlWShrinkFactor = 0.6):
 
     #construction of discrete control space
     sparseControlVBounds = [controlVLowerBound, controlVUpperBound]
