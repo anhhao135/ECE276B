@@ -18,21 +18,30 @@ def main():
     
     plotTitle = ""
 
-    #tuning parameters
+    #initialize tuning parameters
     Q = 0
     R = 0
     q = 0
     gamma = 0
     CEC_horizon = 0
 
+    simulationIterations = 200
 
     if (typeOfController == "nlp"):
         #nlp tuning parameters
         Q = 20
         R = 5
         q = 5
+        gamma = 0.1
+        CEC_horizon = 8
+    
+    if (typeOfController == "gpi"):
+        #nlp tuning parameters
+        Q = 1
+        R = 5
+        q = 5
         gamma = 0.95
-        CEC_horizon = 5
+        CEC_horizon = 8
         plotTitle = "CEC, NLP-solved, trajectory tracking\nQ: {Q}, R: {R}, q: {q}, gamma: {gamma}, horizon: {CEC_horizon}".format(Q = Q, R = R, q = q, gamma = gamma, CEC_horizon = CEC_horizon)
 
     
@@ -57,7 +66,7 @@ def main():
     cur_iter = 0
     # Main loop
     #while cur_iter * utils.time_step < utils.sim_time:
-    while cur_iter < 200:
+    while cur_iter < simulationIterations:
         t1 = time()
         # Get reference state
         cur_time = cur_iter * utils.time_step
@@ -102,6 +111,9 @@ def main():
     print("Average iteration time: ", np.array(times).mean() * 1000, "ms")
     print("Final total translational error: ", error_trans)
     print("Final total rotational error: ", error_rot)
+
+    if (typeOfController == "nlp"):
+        plotTitle = "CEC, NLP-solved, trajectory tracking\nQ: {Q}, R: {R}, q: {q}, gamma: {gamma}, horizon: {CEC_horizon}\nTotal translational error: {transError}, total rotational error: {rotError}\nSimulation iterations: {simIter}, average iteration time: {avgIterTime} ms".format(Q = Q, R = R, q = q, gamma = gamma, CEC_horizon = CEC_horizon, transError = error_trans, rotError = error_rot, simIter = simulationIterations, avgIterTime = np.array(times).mean() * 1000)
 
     # Visualization
     ref_traj = np.array(ref_traj)

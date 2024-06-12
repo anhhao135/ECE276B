@@ -158,6 +158,7 @@ def visualize(car_states, ref_traj, obstacles, t, time_step, save=False, plotTit
         repeat=True,
     )
     plt.title(plotTitle)
+    plt.axis('equal')
     plt.show()
 
     if save == True:
