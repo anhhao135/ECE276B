@@ -26,9 +26,9 @@ print("control space size:", controlSpaceSize)
 print("per time state space shape:", perTimeStateSpaceSize)
 
 L = np.zeros((stateSpaceSize,controlSpaceSize))
-Q = 15 * scipy.sparse.eye(2)
+Q = 8 * scipy.sparse.eye(2)
 R = 1 * scipy.sparse.eye(2)
-q = 15
+q = 10
 
 
 P_err = np.atleast_2d(discreteStateSpace[:,0:2].flatten())
@@ -54,7 +54,7 @@ L = np.tile(L_P_err, controlSpaceSize) + np.tile(L_Theta_err, controlSpaceSize) 
 
 traj = utils.lissajous
 
-iterations = 200
+iterations = 300
 
 V_mask = np.load('V_mask.npy')
 P = np.load('P.npy')
