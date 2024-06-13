@@ -183,6 +183,7 @@ def GPI_controller(curTime, currentState, currentRef, policy, stateSpace, contro
         referenceStatesAhead.append(traj(i))
     referenceStatesAhead = np.array(referenceStatesAhead)
     
+        
     referenceStatesAheadThetas = referenceStatesAhead[:,2]
     #print("current state", currentState)
     referenceStatesAheadThetas = np.concatenate((referenceStatesAheadThetas, np.atleast_1d(currentState[2])))
@@ -207,7 +208,7 @@ def GPI_controller(curTime, currentState, currentRef, policy, stateSpace, contro
 
 
 
-def constructDiscreteStateSpace(timeStepsCount = 100, positionErrorBoundMagnitude = 3, thetaErrorBoundMagnitude = np.pi, sparseDiscretizationCount = 2, densePositionErrorShrinkFactor = 0.4, denseThetaErrorShrinkFactor = 0.4):
+def constructDiscreteStateSpace(timeStepsCount = 100, positionErrorBoundMagnitude = 3, thetaErrorBoundMagnitude = np.pi, sparseDiscretizationCount = 5, densePositionErrorShrinkFactor = 0.4, denseThetaErrorShrinkFactor = 0.4):
     #construction of discrete state space
 
     sparseThetaErrorBounds = [-thetaErrorBoundMagnitude, thetaErrorBoundMagnitude]
@@ -217,7 +218,6 @@ def constructDiscreteStateSpace(timeStepsCount = 100, positionErrorBoundMagnitud
     sparseYError = np.linspace(sparsePositionErrorBounds[0], sparsePositionErrorBounds[1], sparseDiscretizationCount)
     sparseThetaError = np.linspace(sparseThetaErrorBounds[0], sparseThetaErrorBounds[1], sparseDiscretizationCount)
     sparseXErrorGrid, sparseYErrorGrid, sparseZErrorGrid = np.meshgrid(sparseXError, sparseYError, sparseThetaError, indexing='ij')
-
 
     denseThetaErrorBounds = [denseThetaErrorShrinkFactor * sparseThetaErrorBounds[0], denseThetaErrorShrinkFactor * sparseThetaErrorBounds[1]]
     densePositionErrorBounds = [densePositionErrorShrinkFactor * sparsePositionErrorBounds[0], densePositionErrorShrinkFactor * sparsePositionErrorBounds[1]]
@@ -250,7 +250,7 @@ def constructDiscreteStateSpace(timeStepsCount = 100, positionErrorBoundMagnitud
 
     return discreteStateSpace
 
-def constructDiscreteControlSpace(controlVUpperBound = 1, controlVLowerBound = 0, controlWBoundMagnitude = 1, sparseControlDiscretizationCount = 3, densesControlVShrinkFactor = 0.6, denseControlWShrinkFactor = 0.6):
+def constructDiscreteControlSpace(controlVUpperBound = 1, controlVLowerBound = 0, controlWBoundMagnitude = 1, sparseControlDiscretizationCount = 5, densesControlVShrinkFactor = 0.5, denseControlWShrinkFactor = 0.5):
 
     #construction of discrete control space
     sparseControlVBounds = [controlVLowerBound, controlVUpperBound]

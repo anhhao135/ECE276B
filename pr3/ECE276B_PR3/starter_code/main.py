@@ -25,7 +25,7 @@ def main():
     gamma = 0
     CEC_horizon = 0
 
-    simulationIterations = 200
+    simulationIterations = 800
 
     if (typeOfController == "nlp"):
         #nlp tuning parameters

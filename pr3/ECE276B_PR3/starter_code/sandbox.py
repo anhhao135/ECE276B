@@ -11,8 +11,8 @@ import sparse
 import sys
 
 #construction of discrete state space
-discreteStateSpace = np.array(constructDiscreteStateSpace())
-discreteControlSpace = np.array(constructDiscreteControlSpace())
+discreteStateSpace = np.loadtxt('stateSpace.txt')
+discreteControlSpace = np.loadtxt('controlSpace.txt')
 
 
 stateSpaceSize = discreteStateSpace.shape[0]
@@ -36,7 +36,7 @@ print("control space size:", controlSpaceSize)
 print("per time state space shape:", perTimeStateSpaceSize)
 
 L = np.zeros((stateSpaceSize,controlSpaceSize))
-Q = 2 * scipy.sparse.eye(2)
+Q = 1 * scipy.sparse.eye(2)
 R = 1 * scipy.sparse.eye(2)
 q = 1
 

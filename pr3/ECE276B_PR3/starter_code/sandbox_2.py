@@ -13,34 +13,22 @@ import sys
 
 
 #construction of discrete state space
-discreteStateSpace = np.array(constructDiscreteStateSpace())
-discreteControlSpace = np.array(constructDiscreteControlSpace())
+discreteStateSpace = np.loadtxt('stateSpace.txt')
+discreteControlSpace = np.loadtxt('controlSpace.txt')
 
 
 stateSpaceSize = discreteStateSpace.shape[0]
 perTimeStateSpaceSize = int(stateSpaceSize / utils.T)
 controlSpaceSize = discreteControlSpace.shape[0]
 
-numberOfNeighbors = 12
-
-stateNeighbors = findNeighborsOfState(discreteStateSpace, perTimeStateSpaceSize, numberOfNeighbors)
-
-#print(discreteStateSpace[5500])
-#print(stateNeighbors[5500 % perTimeStateSpaceSize])
-#print(2*perTimeStateSpaceSize + np.array(np.nonzero(stateNeighbors[5500 % perTimeStateSpaceSize] > 0)))
-
-#print(stateNeighbors[5500])
-#print(np.nonzero(stateNeighbors[5500] > 0))
-#print(stateNeighbors[5500].shape)
-
 print("state space size:", stateSpaceSize)
 print("control space size:", controlSpaceSize)
 print("per time state space shape:", perTimeStateSpaceSize)
 
 L = np.zeros((stateSpaceSize,controlSpaceSize))
-Q = 10 * scipy.sparse.eye(2)
+Q = 8 * scipy.sparse.eye(2)
 R = 1 * scipy.sparse.eye(2)
-q = 30
+q = 2
 
 
 P_err = np.atleast_2d(discreteStateSpace[:,0:2].flatten())
@@ -64,20 +52,9 @@ L_U = np.atleast_2d(np.sum(L_U, axis=1)).T
 
 L = np.tile(L_P_err, controlSpaceSize) + np.tile(L_Theta_err, controlSpaceSize) + np.tile(L_U, stateSpaceSize).T
 
-#mu = np.zeros(3)
-#print(multivariate_normal.pdf(np.array([0.2,0.2,0.01]), mu, utils.sigma))
-
 traj = utils.lissajous
 
-referenceStatesAhead = []
-
-for i in range(0, 120):
-    referenceStatesAhead.append(traj(i))
-
-referenceStatesAhead = np.array(referenceStatesAhead)
-
 iterations = 100
-
 
 V_mask = np.load('V_mask.npy')
 P = np.load('P.npy')
