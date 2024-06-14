@@ -11,8 +11,6 @@ def main():
     
     typeOfController = str(sys.argv[1])
 
-    print(typeOfController)
-
     if not (typeOfController == "nlp" or typeOfController == "gpi"):
         raise Exception("Need to specify either nlp or gpi controller!")
     
@@ -27,26 +25,26 @@ def main():
 
     simulationIterations = 800
 
+    policy = None
+
     if (typeOfController == "nlp"):
         #nlp tuning parameters
         Q = 20
         R = 5
         q = 5
-        gamma = 0.1
+        gamma = 0.9
         CEC_horizon = 8
     
     if (typeOfController == "gpi"):
-        #nlp tuning parameters
-        Q = 1
-        R = 5
-        q = 5
+        #gpi tuning parameters
+        Q = 8
+        R = 1
+        q = 13
         gamma = 0.95
-        CEC_horizon = 8
-        plotTitle = "CEC, NLP-solved, trajectory tracking\nQ: {Q}, R: {R}, q: {q}, gamma: {gamma}, horizon: {CEC_horizon}".format(Q = Q, R = R, q = q, gamma = gamma, CEC_horizon = CEC_horizon)
+        policy = my_utils.GPI_CalculatePolicy(Q, R, q, gamma) #calculate policy using parameters
 
     
     #GPI controller
-    GPI_policy = np.loadtxt('policy.txt')
     GPI_stateSpace = np.loadtxt('stateSpace.txt')
     GPI_controlSpace = np.loadtxt('controlSpace.txt')
 
@@ -83,11 +81,11 @@ def main():
         if typeOfController == "nlp":
             control = my_utils.NLP_controller(utils.time_step, CEC_horizon, traj, cur_iter, cur_state, [-3,-3,3,3], obstacles[0], obstacles[1], Q, R, q, 0.2, gamma)
         elif typeOfController == "gpi":
-            control = my_utils.GPI_controller(cur_iter, cur_state, cur_ref, GPI_policy, GPI_stateSpace, GPI_controlSpace, traj)
+            control = my_utils.GPI_controller(cur_iter, cur_state, GPI_stateSpace, GPI_controlSpace, traj, policy)
 
-        print("current ref state", cur_ref)
-        print("current robot state", cur_state)
-        print("current control input", control)
+        print("Current ref state", cur_ref)
+        print("Current robot state", cur_state)
+        print("Current control input", control)
         ################################################################
 
         # Apply control input
@@ -114,6 +112,8 @@ def main():
 
     if (typeOfController == "nlp"):
         plotTitle = "CEC, NLP-solved, trajectory tracking\nQ: {Q}, R: {R}, q: {q}, gamma: {gamma}, horizon: {CEC_horizon}\nTotal translational error: {transError}, total rotational error: {rotError}\nSimulation iterations: {simIter}, average iteration time: {avgIterTime} ms".format(Q = Q, R = R, q = q, gamma = gamma, CEC_horizon = CEC_horizon, transError = error_trans, rotError = error_rot, simIter = simulationIterations, avgIterTime = np.array(times).mean() * 1000)
+    if (typeOfController == "gpi"):
+        plotTitle = "GPI trajectory tracking\nQ: {Q}, R: {R}, q: {q}, gamma: {gamma}\nTotal translational error: {transError}, total rotational error: {rotError}\nSimulation iterations: {simIter}, average iteration time: {avgIterTime} ms".format(Q = Q, R = R, q = q, gamma = gamma, transError = error_trans, rotError = error_rot, simIter = simulationIterations, avgIterTime = np.array(times).mean() * 1000)
 
     # Visualization
     ref_traj = np.array(ref_traj)
