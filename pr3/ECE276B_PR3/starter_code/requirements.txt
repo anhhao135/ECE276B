@@ -1,0 +1,6 @@
+casadi==3.6.5
+matplotlib==3.7.4
+numpy==1.24.4
+ray==2.10.0
+scipy==1.9.1
+tqdm==4.66.2

@@ -45,7 +45,7 @@ def main():
         q = 13
         gamma = 0.95
         obstaclePenalty = 50
-        useExistingPolicy = False
+        useExistingPolicy = True
 
         if useExistingPolicy:
             policy = np.loadtxt('policy.txt')

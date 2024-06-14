@@ -12,14 +12,14 @@ startTime = time()
 
 #construction of discrete state space and control space
 #specify discretization count and shrink factors (discussed in report)
-discreteStateSpace = np.array(constructDiscreteStateSpace(sparseDiscretizationCount = 3, densePositionErrorShrinkFactor = 0.3, denseThetaErrorShrinkFactor = 0.3))
-discreteControlSpace = np.array(constructDiscreteControlSpace(sparseControlDiscretizationCount = 3, densesControlVShrinkFactor = 0.3, denseControlWShrinkFactor = 0.3))
+discreteStateSpace = np.array(constructDiscreteStateSpace(sparseDiscretizationCount = 5, densePositionErrorShrinkFactor = 0.3, denseThetaErrorShrinkFactor = 0.3))
+discreteControlSpace = np.array(constructDiscreteControlSpace(sparseControlDiscretizationCount = 5, densesControlVShrinkFactor = 0.3, denseControlWShrinkFactor = 0.3))
 stateSpaceSize = discreteStateSpace.shape[0]
 perTimeStateSpaceSize = int(stateSpaceSize / utils.T)
 controlSpaceSize = discreteControlSpace.shape[0]
 
 #specify neighbor count
-numberOfNeighbors = 2
+numberOfNeighbors = 8
 
 #precompute the likelihoods of the neighbors surround each state given the state is the mean
 stateNeighbors = findNeighborsOfState(discreteStateSpace, perTimeStateSpaceSize, numberOfNeighbors)
