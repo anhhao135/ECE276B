@@ -1,35 +1,36 @@
-from time import time
 import numpy as np
 import utils
-import matplotlib.pyplot as plt
 from my_utils import *
 import scipy.sparse
-from scipy.stats import multivariate_normal
-from tqdm import tqdm
-import ray
-import sparse
-import sys
+
+#script to calculate the optimal policy using a precomputed transition matrix for GPI
+#specify tuning parameters here
 
 
-
-#construction of discrete state space
+#load state and control space
 discreteStateSpace = np.loadtxt('stateSpace.txt')
 discreteControlSpace = np.loadtxt('controlSpace.txt')
-
-
 stateSpaceSize = discreteStateSpace.shape[0]
 perTimeStateSpaceSize = int(stateSpaceSize / utils.T)
 controlSpaceSize = discreteControlSpace.shape[0]
 
-print("state space size:", stateSpaceSize)
-print("control space size:", controlSpaceSize)
-print("per time state space shape:", perTimeStateSpaceSize)
-
+#tune GPI parameters here
 L = np.zeros((stateSpaceSize,controlSpaceSize))
 Q = 8 * scipy.sparse.eye(2)
 R = 1 * scipy.sparse.eye(2)
 q = 10
+gamma = 0.95
 
+
+#specify the amount of GPI iterations
+iterations = 300
+
+#specify convergence threshold for change in value function:
+terminationThresh = 0.0001
+
+
+
+#construction of the stage cost in matrix form
 
 P_err = np.atleast_2d(discreteStateSpace[:,0:2].flatten())
 Theta_err = discreteStateSpace[:,2]
@@ -52,35 +53,30 @@ L_U = np.atleast_2d(np.sum(L_U, axis=1)).T
 
 L = np.tile(L_P_err, controlSpaceSize) + np.tile(L_Theta_err, controlSpaceSize) + np.tile(L_U, stateSpaceSize).T
 
-traj = utils.lissajous
 
-iterations = 300
-
+#load the precomputed transition and value mask matrices
 V_mask = np.load('V_mask.npy')
 P = np.load('P.npy')
 
+#initialize zero value function and policy matrices
 V = np.zeros((iterations+1, stateSpaceSize))
 pi = np.zeros((iterations+1,stateSpaceSize),dtype=np.uint16)
 
-gamma = 0.95
-
-
+#core of GPI algorithm
 for k in range(iterations):
     Q = np.zeros((stateSpaceSize,controlSpaceSize))
     V_k = V[k,:][V_mask]
-    Q = L + gamma * np.sum(np.multiply(P,V_k), axis=2)
+    Q = L + gamma * np.sum(np.multiply(P,V_k), axis=2) #caluate Q-value matrix
     pi[k+1,:] = np.argmin(Q, axis=1) #policy improvement
-    V[k+1,:] = np.min(Q, axis=1) #value update
-    maxValueDifference = np.abs(V[k+1] - V[k]).max()
-
+    V[k+1,:] = np.min(Q, axis=1) #policy evaluation; but in this case we only do it once; as long as GPI runs forever, the value function should converge
+    maxValueDifference = np.abs(V[k+1] - V[k]).max() #check for the max change in the value function; bigger changes means the policy is still evolving and has not converged yet
     discreteState = continuousToDiscreteState(np.array([0,0,0,0]),discreteStateSpace)
-    print("control for no error at time 0", discreteControlSpace[int(pi[k+1,discreteState])])
-    print("Q for discrete state", Q[discreteState])
+
+    if maxValueDifference < terminationThresh:
+        break #terminate once the policy converges sufficiently
+
+    print("Max value function difference", maxValueDifference)
 
 
-    print("max value difference", maxValueDifference)
-    print("iteration", k)
-
+#save policy to disk for querying
 np.savetxt('policy.txt', pi[-1:])
-np.savetxt('controlSpace.txt', discreteControlSpace)
-np.savetxt('stateSpace.txt', discreteStateSpace)
