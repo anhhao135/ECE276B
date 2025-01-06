@@ -5,6 +5,9 @@ warnings.filterwarnings('ignore')
 import os
 from csv import writer
 from natsort import natsorted
+import json
+from create_env import *
+import time
 
 env_dir = "envs/random_envs"
 #this is to run the calculation for part B on all random environments
@@ -16,15 +19,29 @@ goalLocations = [np.array([5,1]), np.array([6,3]), np.array([5,6])] #these can o
 keyLocations = [np.array([1,1]), np.array([2,3]), np.array([1,6])] #these can occur with equal probabilities
 doorLocations = [np.array([4,2]), np.array([4,5])] #this is fixed
 
-initialPos = np.array([3,5], dtype=np.int16) #this is fixed
-initialDir = np.array([0,-1], dtype=np.int16) #this is fixed
 timeHorizon = 1000 #the policy calculation should terminate earlier than the horizon
 dimension = 8
 #--------------------------------------------------------------
 
 #calculate the optimal policy once based on the random map generation parameters
 
-optimalPolicy = calculateSingleOptimalPolicy(timeHorizon, goalLocations, keyLocations, doorLocations, dimension, initialPos, initialDir)
+optimalPolicy = {}
+
+if os.path.isfile('part_b_policy.txt'): #check if the pre-computed policy exists, this can save the grader time
+    with open('part_b_policy.txt') as f: 
+        data = f.read() 
+    optimalPolicy = json.loads(data)
+else:
+    start = time.time()
+    optimalPolicy = calculateSingleOptimalPolicy(timeHorizon, goalLocations, keyLocations, doorLocations, dimension) #do a single optimal policy calculation given the random map parameters
+    end = time.time()
+    print(f"Optimal policy calculation took {end-start} seconds")
+    with open('part_b_policy.txt', 'w') as file:
+        file.write(json.dumps(optimalPolicy)) #save the policy dictionary as a file
+
+
+#this function will generate different initial poses of the agent for the 36 random maps to truly test the perfomance
+create_random_envs((3,5), UP) #this is the defined pose of the project hand out
 
 with open("random_envs_sequences.csv", "w+") as f_object: #save all optimal sequences in csv file
     writer_object = writer(f_object)
@@ -37,8 +54,8 @@ with open("random_envs_sequences.csv", "w+") as f_object: #save all optimal sequ
         door1 = env.grid.get(4,2)
         door2 = env.grid.get(4,5)
         doorState = np.array([door1.is_open, door2.is_open], dtype=np.int16) #construct the doors' lock state
-        keyPos = info['key_pos'] + np.array([1,1]) #get the key location added to [1,1] because of the surrounding wall padding; this is just how the custom state vector is defined
-        goalPos = info['goal_pos'] + np.array([1,1]) #get the goal location added to [1,1]
+        keyPos = info['key_pos']
+        goalPos = info['goal_pos']
 
         #initialized the door unlock attempts to both 0
         door1StateAfter = door1.is_open
@@ -68,13 +85,10 @@ with open("random_envs_sequences.csv", "w+") as f_object: #save all optimal sequ
             #--------------
             
 
-            currentPos = env.agent_pos + np.array([1,1]) #update the current agent position state vector portion
+            currentPos = env.agent_pos #update the current agent position state vector portion
             currentDir = env.dir_vec #update the current agent facing direction state vector portion
             currentKeyPickedUp = env.carrying is not None #update if the agent has picked up the key state vector portion
-            currentState = createCurrentStateVector(currentPos, currentDir, goalPos, keyPos, doorState, currentKeyPickedUp, door1UnlockAttempted, door2UnlockAttempted) #construct the custom current state vector based on the current environment at this step
-
-            lookupState = np.concatenate((np.array([t],dtype=np.int16), currentState)) #construct the key to look up what control input to use next in the optimal policy dictionary; this is the current state and time
-            lookupState = np.array2string(lookupState)[1:-1]
+            currentState = createStateVector(currentPos, currentDir, goalPos, keyPos, doorState, currentKeyPickedUp, door1UnlockAttempted, door2UnlockAttempted) #construct the custom current state vector based on the current environment at this step
 
             #UPDATE CURRENT STATE ----------------------------------------------------------------------------
 
@@ -82,7 +96,7 @@ with open("random_envs_sequences.csv", "w+") as f_object: #save all optimal sequ
 
             #GET CONTROL INPUT FROM POLICY -------------------------------------------------------------------
 
-            optimalControl = optimalPolicy[lookupState] #the optimal policy will return the optimal control input
+            optimalControl = optimalPolicy[np.array2string(currentState)[1:-1]] #the optimal policy will return the optimal control input
 
             seq.append(optimalControl) #add this control input to the sequence
 

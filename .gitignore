@@ -150,3 +150,7 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+pr3/ECE276B_PR3/starter_code/P.npy
+pr3/ECE276B_PR3/starter_code/V_mask.npy
+pr3/ECE276B_PR3/starter_code/backup/P.npy
+pr3/ECE276B_PR3/starter_code/backup/V_mask.npy
